@@ -145,6 +145,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DAW|ARM64'">
+    <OutDir>.\out</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
@@ -544,7 +547,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mmddk.h" />
-    <ClInclude Include="OmniMIDI.h" />
     <ClInclude Include="Res.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="WinMM.h" />

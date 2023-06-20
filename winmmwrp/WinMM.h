@@ -1046,7 +1046,7 @@ UINT WINAPI WINMM_waveInGetNumDevs() {
 }
 
 DWORD WINAPI WINMM_timeGetTime() {
-	return TickStart + (DWORD)((MMtimeGetTime() - TickStart) * SpeedHack);
+	return MMtimeGetTime();
 }
 
 MMRESULT WINAPI WINMM_timeGetDevCaps(LPTIMECAPS ptc, UINT cbtc) {
@@ -1076,6 +1076,164 @@ MMRESULT WINAPI WINMM_timeEndPeriod(UINT uPeriod) {
 HMODULE WINAPI WINMM_GetOWINMM() {
 	return OWINMM;
 }
+
+UINT WINAPI WINMM_midiOutGetNumDevs(void) {
+	return MMmidiOutGetNumDevs();
+}
+
+MMRESULT WINAPI WINMM_midiOutGetID(
+	_In_ HMIDIOUT hmo,
+	_Out_ LPUINT puDeviceID
+) {
+	return MMmidiOutGetID(hmo, puDeviceID);
+}
+
+MMRESULT WINAPI WINMM_midiOutCachePatches(
+	_In_ HMIDIOUT hmo,
+	_In_ UINT uBank,
+	_In_reads_(MIDIPATCHSIZE) LPWORD pwpa,
+	_In_ UINT fuCache
+) {
+	return MMmidiOutCachePatches(hmo, uBank, pwpa, fuCache);
+}
+
+MMRESULT WINAPI WINMM_midiOutCacheDrumPatches(
+	_In_ HMIDIOUT hmo,
+	_In_ UINT uPatch,
+	_In_reads_(MIDIPATCHSIZE) LPWORD pwkya,
+	_In_ UINT fuCache
+) {
+	return MMmidiOutCacheDrumPatches(hmo, uPatch, pwkya, fuCache);
+}
+
+MMRESULT WINAPI WINMM_midiOutOpen(
+	_Out_ LPHMIDIOUT phmo,
+	_In_ UINT uDeviceID,
+	_In_opt_ DWORD_PTR dwCallback,
+	_In_opt_ DWORD_PTR dwInstance,
+	_In_ DWORD fdwOpen
+) {
+	return MMmidiOutOpen(phmo, uDeviceID, dwCallback, dwInstance, fdwOpen);
+}
+
+MMRESULT WINAPI WINMM_midiOutClose(
+	_In_ HMIDIOUT hmo
+) {
+	return MMmidiOutClose(hmo);
+}
+
+MMRESULT WINAPI WINMM_midiOutPrepareHeader(
+	_In_ HMIDIOUT hmo,
+	_Inout_updates_bytes_(cbmh) LPMIDIHDR pmh,
+	_In_ UINT cbmh
+) {
+	return MMmidiOutPrepareHeader(hmo, pmh, cbmh);
+}
+
+MMRESULT WINAPI WINMM_midiOutUnprepareHeader(
+	_In_ HMIDIOUT hmo,
+	_Inout_updates_bytes_(cbmh) LPMIDIHDR pmh,
+	_In_ UINT cbmh
+) {
+	return MMmidiOutUnprepareHeader(hmo, pmh, cbmh);
+}
+
+MMRESULT WINAPI WINMM_midiOutShortMsg(
+	_In_ HMIDIOUT hmo,
+	_In_ DWORD dwMsg
+){ return MMmidiOutShortMsg(hmo, dwMsg); }
+
+
+MMRESULT WINAPI WINMM_midiOutLongMsg(
+	_In_ HMIDIOUT hmo,
+	_In_reads_bytes_(cbmh) LPMIDIHDR pmh,
+	_In_ UINT cbmh
+) { return MMmidiOutLongMsg(hmo, pmh, cbmh); }
+
+
+MMRESULT WINAPI WINMM_midiStreamOpen(
+	_Out_ LPHMIDISTRM phms,
+	_Inout_updates_(cMidi) LPUINT puDeviceID,
+	_In_ DWORD cMidi,
+	_In_opt_ DWORD_PTR dwCallback,
+	_In_opt_ DWORD_PTR dwInstance,
+	_In_ DWORD fdwOpen
+) { return MMmidiStreamOpen(phms, puDeviceID, cMidi, dwCallback, dwInstance, fdwOpen); }
+
+
+MMRESULT WINAPI WINMM_midiStreamClose(
+	_In_ HMIDISTRM hms
+) { return MMmidiStreamClose(hms); }
+
+
+MMRESULT WINAPI WINMM_midiStreamProperty(
+	_In_ HMIDISTRM hms,
+	_Inout_updates_bytes_(sizeof(DWORD) + sizeof(DWORD)) LPBYTE lppropdata,
+	_In_ DWORD dwProperty
+) { return MMmidiStreamProperty(hms, lppropdata, dwProperty); }
+
+
+MMRESULT WINAPI WINMM_midiStreamPosition(
+	_In_ HMIDISTRM hms,
+	_Out_writes_bytes_(cbmmt) LPMMTIME lpmmt,
+	_In_ UINT cbmmt
+) { return MMmidiStreamPosition(hms, lpmmt, cbmmt); }
+
+
+MMRESULT WINAPI WINMM_midiStreamOut(
+	_In_ HMIDISTRM hms,
+	_Out_writes_bytes_(cbmh) LPMIDIHDR pmh,
+	_In_ UINT cbmh
+) { return MMmidiStreamOut(hms, pmh, cbmh); }
+
+
+MMRESULT WINAPI WINMM_midiStreamPause(
+	_In_ HMIDISTRM hms
+) { return MMmidiStreamPause(hms); }
+
+
+MMRESULT WINAPI WINMM_midiStreamRestart(
+	_In_ HMIDISTRM hms
+) { return MMmidiStreamRestart(hms); }
+
+MMRESULT WINAPI WINMM_midiOutGetDevCapsA(
+	_In_ UINT_PTR uDeviceID,
+	_Out_writes_bytes_(cbmoc) LPMIDIOUTCAPSA pmoc,
+	_In_ UINT cbmoc
+) {
+	return MMmidiOutGetDevCapsA(uDeviceID, pmoc, cbmoc);
+}
+
+MMRESULT WINAPI WINMM_midiOutGetDevCapsW(
+	_In_ UINT_PTR uDeviceID,
+	_Out_writes_bytes_(cbmoc) LPMIDIOUTCAPSW pmoc,
+	_In_ UINT cbmoc
+) { return MMmidiOutGetDevCapsW(uDeviceID, pmoc, cbmoc); }
+
+MMRESULT WINAPI WINMM_midiOutGetVolume(
+	_In_opt_ HMIDIOUT hmo,
+	_Out_ LPDWORD pdwVolume
+) { return MMmidiOutGetVolume(hmo, pdwVolume); }
+
+MMRESULT WINAPI WINMM_midiOutSetVolume(
+	_In_opt_ HMIDIOUT hmo,
+	_In_ DWORD dwVolume
+) { MMmidiOutSetVolume(hmo, dwVolume); }
+
+MMRESULT WINAPI WINMM_midiOutMessage(
+	_In_opt_ HMIDIOUT hmo,
+	_In_ UINT uMsg,
+	_In_opt_ DWORD_PTR dw1,
+	_In_opt_ DWORD_PTR dw2
+) { return MMmidiOutMessage(hmo, uMsg, dw1, dw2); }
+
+MMRESULT WINAPI WINMM_midiOutReset(
+	_In_ HMIDIOUT hmo
+) { return MMmidiOutReset(hmo); }
+
+MMRESULT WINAPI WINMM_midiStreamStop(
+	_In_ HMIDISTRM hms
+) { return MMmidiStreamStop(hms); }
 
 #ifdef _M_IX86
 MMRESULT WINAPI WINMM_aux32Message(UINT_PTR uDeviceID, UINT uMsg, DWORD_PTR Handle, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
@@ -1152,25 +1310,11 @@ BOOL ImportFromWinMM(int i, TCHAR* ErrorBuf) {
 	}
 }
 
-void GetSpeedHack() {
-	char Potato[64] = { 0 };
-
-	HKEY RegKey;
-	QWORD TSH = 100000000;
-	DWORD dwType = REG_DWORD, dwSize = sizeof(DWORD);
-
-	LSTATUS ROKE = RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\OmniMIDI\\Configuration", 0, KEY_READ, &RegKey);
-	if (!ROKE) {
-		RegQueryValueExW(RegKey, L"WinMMSpeed", NULL, &dwType, (LPBYTE)&TSH, &dwSize);
-		SpeedHack = ((double)TSH / 100000000.0);
-		TickStart = MMtimeGetTime();
-	}
-	RegCloseKey(&RegKey);
-}
-
 BOOL InitializeWinMM() {
 	if (OWINMM)
 		return TRUE;
+
+	printf("WinMM MIDI device wrapper initializing.");
 
 	BOOL IOMRUW = IsOMRunningUnderWine();
 
@@ -1193,7 +1337,7 @@ BOOL InitializeWinMM() {
 			MessageBox(
 				NULL,
 				"The wrapper was unable to load WINMM.DLL!\nUnable to initialize the Windows Multimedia Extension API.\n\nPress OK to exit.",
-				"KDMAPI ERROR",
+				"ERROR",
 				MB_ICONERROR | MB_OK | MB_SYSTEMMODAL
 			);
 
@@ -1204,7 +1348,7 @@ BOOL InitializeWinMM() {
 			MessageBox(
 				NULL,
 				"The wrapper was unable to locate KERNEL32.DLL!\nIs this even Windows?\n\nPress OK to exit.",
-				"KDMAPI ERROR",
+				"ERROR",
 				MB_ICONERROR | MB_OK | MB_SYSTEMMODAL
 			);
 
