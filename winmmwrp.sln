@@ -7,30 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinMMWRP", "winmmwrp\winmmw
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		DAW|ARM64 = DAW|ARM64
-		DAW|x64 = DAW|x64
-		DAW|x86 = DAW|x86
-		Shakra|ARM64 = Shakra|ARM64
-		Shakra|x64 = Shakra|x64
-		Shakra|x86 = Shakra|x86
-		Standard|ARM64 = Standard|ARM64
 		Standard|x64 = Standard|x64
-		Standard|x86 = Standard|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.DAW|ARM64.ActiveCfg = Release|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.DAW|ARM64.Build.0 = Release|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.DAW|x64.ActiveCfg = DAW|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.DAW|x64.Build.0 = DAW|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.DAW|x86.ActiveCfg = DAW|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Shakra|ARM64.ActiveCfg = Shakra|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Shakra|x64.ActiveCfg = Shakra|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Shakra|x64.Build.0 = Shakra|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Shakra|x86.ActiveCfg = Shakra|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Standard|ARM64.ActiveCfg = Shakra|x64
 		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Standard|x64.ActiveCfg = Release|x64
 		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Standard|x64.Build.0 = Release|x64
-		{B09DEEF1-C89D-4577-96C6-D8B8AC6523D6}.Standard|x86.ActiveCfg = Shakra|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
