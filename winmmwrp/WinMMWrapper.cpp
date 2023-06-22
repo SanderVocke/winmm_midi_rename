@@ -145,7 +145,10 @@ void load_config(std::string filename) {
 		wrapper_log("Loading config from %s\n", filename.c_str());
 
 		std::ifstream f(filename);
-		json data = json::parse(f);
+		std::stringstream buffer;
+		buffer << f.rdbuf();
+		wrapper_log("Config: %s\n", buffer.str().c_str());
+		json data = json::parse(buffer.str());
 
 		if (data.contains("rules")) {
 			auto& rules = data["rules"];
