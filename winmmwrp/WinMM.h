@@ -160,7 +160,7 @@ MMRESULT(WINAPI* MMmmioSetInfo)(HMMIO, LPMMIOINFO, UINT) = 0;
 
 // MM stuff
 BOOL(WINAPI* MMmmTaskSignal)(DWORD) = 0;
-UINT(WINAPI* MMmmTaskCreate)(LPTASKCALLBACK, HANDLE, DWORD_PTR) = 0;
+UINT(WINAPI* MMmmTaskCreate)(void*, HANDLE, DWORD_PTR) = 0;
 VOID(WINAPI* MMmmTaskBlock)(DWORD) = 0;
 VOID(WINAPI* MMmmTaskYield)() = 0;
 // MM stuff
@@ -1048,7 +1048,7 @@ MMRESULT WINAPI WINMM_timeKillEvent(UINT uTimerID) {
 }
 
 MMRESULT WINAPI WINMM_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt) {
-	return MMtimeGetSystemTime(pmmt, &cbmmt);
+	return MMtimeGetSystemTime(pmmt, cbmmt);
 }
 
 MMRESULT WINAPI WINMM_timeBeginPeriod(UINT uPeriod) {
@@ -1204,7 +1204,7 @@ MMRESULT WINAPI WINMM_midiOutGetVolume(
 MMRESULT WINAPI WINMM_midiOutSetVolume(
 	_In_opt_ HMIDIOUT hmo,
 	_In_ DWORD dwVolume
-) { MMmidiOutSetVolume(hmo, dwVolume); }
+) { return MMmidiOutSetVolume(hmo, dwVolume); }
 
 MMRESULT WINAPI WINMM_midiOutMessage(
 	_In_opt_ HMIDIOUT hmo,
@@ -1272,7 +1272,7 @@ BOOL IsOMRunningUnderWine() {
 	HMODULE hntdll = GetModuleHandle("ntdll");
 	if (!hntdll) return FALSE;
 
-	WGBI = (void*)GetProcAddress(hntdll, "wine_get_build_id");
+	WGBI = (const char*(WINAPI *)())GetProcAddress(hntdll, "wine_get_build_id");
 	return (WGBI != NULL) ? TRUE : FALSE;
 }
 
@@ -1362,7 +1362,7 @@ BOOL InitializeWinMM() {
 	// LOAD EVERYTHING!
 	for (int i = 0; i < sizeof(MMImports) / sizeof(MMImports[0]); i++)
 	{
-		if (*(MMImports[i].ptr) == Dummy) {
+		if ((INT)*(MMImports[i].ptr) == Dummy) {
 			OutputDebugString(MMImports[i].name);
 			OutputDebugString("Not present in Wine, continue...");
 			continue;
