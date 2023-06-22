@@ -11,10 +11,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WinMMWrapper.c">
-      <Filter>File di origine</Filter>
-    </ClCompile>
-    <ClCompile Include="WinMMWRPSHK.c">
+    <ClCompile Include="WinMMWrapper.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,9 +29,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="WinMMWrapper64.def">
-      <Filter>File di origine</Filter>
-    </None>
-    <None Include="WinMMWrapper32.def">
       <Filter>File di origine</Filter>
     </None>
   </ItemGroup>

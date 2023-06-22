@@ -1,16 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DAW|x64">
-      <Configuration>DAW</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Shakra|x64">
-      <Configuration>Shakra</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -69,7 +61,7 @@
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <CompileAs>CompileAsC</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <OmitFramePointers>false</OmitFramePointers>
       <DebugInformationFormat>None</DebugInformationFormat>
@@ -192,12 +184,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="WinMMWrapper.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shakra|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="WinMMWRPSHK.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DAW|x64'">true</ExcludedFromBuild>
+    <ClCompile Include="WinMMWrapper.cpp">
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -207,10 +194,6 @@
     <ClInclude Include="WinMM.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="WinMMWrapper32.def">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DAW|x64'">
-      </ExcludedFromBuild>
-    </None>
     <None Include="WinMMWrapper64.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

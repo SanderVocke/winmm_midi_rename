@@ -230,22 +230,8 @@ MMRESULT(WINAPI* MMwaveInUnprepareHeader)(HWAVEIN, LPWAVEHDR, UINT) = 0;
 UINT(WINAPI* MMwaveInGetNumDevs)() = 0;
 // Wave in stuff
 
-#ifdef _M_IX86
-// Legacy 16-bit functions
-MMRESULT(WINAPI* MMaux32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMjoy32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMmci32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMmid32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMmod32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMmxd32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMtid32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMwid32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-MMRESULT(WINAPI* MMwod32Message)(UINT_PTR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = 0;
-// Legacy 16-bit functions
-#endif
-
 // Quickity quackity
-#define MMI(f) {& MM##f, #f}
+#define MMI(f) {(void**)& MM##f, #f}
 struct MMImport
 {
 	void** ptr;
@@ -485,11 +471,11 @@ MMRESULT WINAPI WINMM_midiOutGetErrorTextW(MMRESULT err, LPWSTR pszT, UINT cchT)
 	return MMmidiOutGetErrorTextW(err, pszT, cchT);
 }
 
-MMRESULT WINAPI WINMM_midiConnect(HMIDI hS, HMIDIIN hM, LPVOID lpV) {
+MMRESULT WINAPI WINMM_midiConnect(HMIDI hS, HMIDIOUT hM, LPVOID lpV) {
 	return MMmidiConnect(hS, hM, lpV);
 }
 
-MMRESULT WINAPI WINMM_midiDisconnect(HMIDI hS, HMIDIIN hM, LPVOID lpV) {
+MMRESULT WINAPI WINMM_midiDisconnect(HMIDI hS, HMIDIOUT hM, LPVOID lpV) {
 	return MMmidiDisconnect(hS, hM, lpV);
 }
 
@@ -533,7 +519,7 @@ MMRESULT WINAPI WINMM_midiInGetDevCapsA(UINT_PTR uP, LPMIDIINCAPSA LPMIC, UINT u
 	return MMmidiInGetDevCapsA(uP, LPMIC, u);
 }
 
-MMRESULT WINAPI WINMM_midiInGetDevCapsW(UINT_PTR uP, LPMIDIINCAPSA LPMIC, UINT u) {
+MMRESULT WINAPI WINMM_midiInGetDevCapsW(UINT_PTR uP, LPMIDIINCAPSW LPMIC, UINT u) {
 	return MMmidiInGetDevCapsW(uP, LPMIC, u);
 }
 
@@ -541,7 +527,7 @@ MMRESULT WINAPI WINMM_midiInGetErrorTextA(MMRESULT mmr, LPSTR str, UINT u) {
 	return MMmidiInGetErrorTextA(mmr, str, u);
 }
 
-MMRESULT WINAPI WINMM_midiInGetErrorTextW(MMRESULT mmr, LPSTR str, UINT u) {
+MMRESULT WINAPI WINMM_midiInGetErrorTextW(MMRESULT mmr, LPWSTR str, UINT u) {
 	return MMmidiInGetErrorTextW(mmr, str, u);
 }
 
@@ -601,7 +587,7 @@ BOOL WINAPI WINMM_mciExecute(LPCSTR pC) {
 	return MMmciExecute(pC);
 }
 
-UINT WINAPI WINMM_mciLoadCommandResource(HANDLE hI, LPCWSTR lpRN, UINT wT) {
+UINT WINAPI WINMM_mciLoadCommandResource(HINSTANCE hI, LPCWSTR lpRN, UINT wT) {
 	return MMmciLoadCommandResource(hI, lpRN, wT);
 }
 
@@ -669,7 +655,7 @@ UINT WINAPI WINMM_mciSetYieldProc(MCIDEVICEID wDID, YIELDPROC fpYP, DWORD dwYD) 
 	return MMmciSetYieldProc(wDID, fpYP, dwYD);
 }
 
-YIELDPROC WINAPI WINMM_mciGetYieldProc(MCIDEVICEID wDID, DWORD lpdwYD) {
+YIELDPROC WINAPI WINMM_mciGetYieldProc(MCIDEVICEID wDID, LPDWORD lpdwYD) {
 	return MMmciGetYieldProc(wDID, lpdwYD);
 }
 
@@ -817,7 +803,7 @@ BOOL WINAPI WINMM_mmTaskSignal(DWORD undef) {
 	return MMmmTaskSignal(undef);
 }
 
-UINT WINAPI WINMM_mmTaskCreate(LPTASKCALLBACK undef1, HANDLE undef2, DWORD_PTR undef3) {
+UINT WINAPI WINMM_mmTaskCreate(void* undef1, HANDLE undef2, DWORD_PTR undef3) {
 	return MMmmTaskCreate(undef1, undef2, undef3);
 }
 
@@ -841,15 +827,15 @@ BOOL WINAPI WINMM_PlaySoundW(LPCWSTR pszS, HMODULE hmod, DWORD fdwS) {
 	return MMPlaySoundW(pszS, hmod, fdwS);
 }
 
-BOOL WINAPI WINMM_sndPlaySound(LPCSTR pszS, DWORD fuS) {
+BOOL WINAPI WINMM_sndPlaySound(LPCWSTR pszS, DWORD fuS) {
 	return MMsndPlaySoundA(pszS, fuS);
 }
 
-BOOL WINAPI WINMM_sndPlaySoundA(LPCSTR pszS, DWORD fuS) {
+BOOL WINAPI WINMM_sndPlaySoundA(LPCWSTR pszS, DWORD fuS) {
 	return MMsndPlaySoundA(pszS, fuS);
 }
 
-BOOL WINAPI WINMM_sndPlaySoundW(LPCWSTR pszS, DWORD fuS) {
+BOOL WINAPI WINMM_sndPlaySoundW(LPCTSTR pszS, DWORD fuS) {
 	return MMsndPlaySoundW(pszS, fuS);
 }
 
@@ -1050,7 +1036,7 @@ DWORD WINAPI WINMM_timeGetTime() {
 }
 
 MMRESULT WINAPI WINMM_timeGetDevCaps(LPTIMECAPS ptc, UINT cbtc) {
-	return MMtimeGetDevCaps(ptc, &cbtc);
+	return MMtimeGetDevCaps(ptc, cbtc);
 }
 
 MMRESULT WINAPI WINMM_timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK lpTimeProc, DWORD_PTR dwUser, UINT fuEvent) {

@@ -53,8 +53,8 @@ EXPORTS
 	midiDisconnect					= WINMM_midiDisconnect
 	midiInAddBuffer					= WINMM_midiInAddBuffer
 	midiInClose						= WINMM_midiInClose
-	midiInGetDevCapsA				= WINMM_midiInGetDevCapsA
-	midiInGetDevCapsW				= WINMM_midiInGetDevCapsW
+	midiInGetDevCapsA				= OVERRIDE_midiInGetDevCapsA
+	midiInGetDevCapsW				= OVERRIDE_midiInGetDevCapsW
 	midiInGetErrorTextA				= WINMM_midiInGetErrorTextA
 	midiInGetErrorTextW				= WINMM_midiInGetErrorTextW
 	midiInGetID						= WINMM_midiInGetID
@@ -69,12 +69,12 @@ EXPORTS
 	midiOutCacheDrumPatches			= WINMM_midiOutCacheDrumPatches
 	midiOutCachePatches				= WINMM_midiOutCachePatches
 	midiOutClose					= WINMM_midiOutClose
-	midiOutGetDevCapsA				= WINMM_midiOutGetDevCapsA
-	midiOutGetDevCapsW				= WINMM_midiOutGetDevCapsW
+	midiOutGetDevCapsA				= OVERRIDE_midiOutGetDevCapsA
+	midiOutGetDevCapsW				= OVERRIDE_midiOutGetDevCapsW
 	midiOutGetErrorTextA			= WINMM_midiOutGetErrorTextA
 	midiOutGetErrorTextW			= WINMM_midiOutGetErrorTextW
 	midiOutGetID					= WINMM_midiOutGetID
-	midiOutGetNumDevs				= OVERRIDE_midiOutGetNumDevs
+	midiOutGetNumDevs				= WINMM_midiOutGetNumDevs
 	midiOutGetVolume				= WINMM_midiOutGetVolume
 	midiOutLongMsg					= WINMM_midiOutLongMsg
 	midiOutMessage					= WINMM_midiOutMessage
