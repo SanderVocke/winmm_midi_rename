@@ -5,6 +5,10 @@ Use-cases include:
 - Making devices appear in WINE (on Linux) as they would appear on Windows natively. Usually, MIDI devices get a name from ALSA and this is passed on to WINE, but does not match what Windows would usually come up with. It can be helpful because some applications expect a device by a certain name or ID to appear.
 - Installing a proxy between the device and an automatically connecting application. E.g. in combination with something like JACK, you could route MIDI through other applications before appearing on a virtual loopback device parading as the original device.
 
+# Credits
+
+https://github.com/KeppySoftware/WinMMWRP provided an existing WinMM wrapper to use as boilerplate. It was stripped and the original overriding functions removed.
+
 # Installation
 
 Download or build **winmm.dll** and place it in the same folder as your executable. Also provide a config file (see below). You are set to go.
