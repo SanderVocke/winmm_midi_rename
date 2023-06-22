@@ -213,8 +213,10 @@ void configure() {
 	if ((maybe_env = getenv("MIDI_REPLACE_CONFIGFILE")) != NULL) {
 		try_config_file = std::string(maybe_env);
 	} else if(GetModuleFileNameA(NULL, default_file_path, MAX_PATH) > 0) {
+		size_t found;
+		found = std::string(default_file_path).find_last_of("/\\"); // Get path from file
 		// By default, load a file from the executable's location
-		try_config_file = std::string(default_file_path) + "/midi_replace_config.json";
+		try_config_file = std::string(default_file_path).substr(0, found) + "/midi_replace_config.json";
 	}
 	if (try_config_file.length() > 0) { load_config(try_config_file); }
 
