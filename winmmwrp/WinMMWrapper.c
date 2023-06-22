@@ -81,6 +81,6 @@ BOOL DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID fImpLoad) {
 
 UINT WINAPI OVERRIDE_midiOutGetNumDevs(void) {
 	auto rval = MMmidiOutGetNumDevs();
-	printf("Wrapper: midiOutGetNumDevs -> %d", rval);
+	printf("Wrapper: midiOutGetNumDevs -> %d\r\n", rval);
 	return rval;
 }
