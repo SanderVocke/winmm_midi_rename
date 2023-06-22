@@ -28,7 +28,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Checkout subs
+      uses: textbook/git-checkout-submodule-action@2.1.1
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
