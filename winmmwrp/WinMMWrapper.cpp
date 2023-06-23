@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include <io.h>
+#include <regex>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -66,7 +67,7 @@ midi_dev_caps to_our_dev_caps(dev_caps_struct v) {
 
 struct replace_rule {
 	std::optional<Direction> maybe_match_direction;
-	std::optional<std::string> maybe_match_name;
+	std::optional<std::regex> maybe_match_name;
 	std::optional<size_t> maybe_match_man_id;
 	std::optional<size_t> maybe_match_prod_id;
 	std::optional<size_t> maybe_match_driver_version;
@@ -78,8 +79,9 @@ struct replace_rule {
 
 	bool is_match(midi_dev_caps const& m) const {
 		bool rval = true;
+		std::smatch rmatch;
 		if (maybe_match_direction.has_value()) { rval = rval && (maybe_match_direction.value() == m.direction); }
-		if (maybe_match_name.has_value()) { rval = rval && (maybe_match_name.value() == m.name); }
+		if (maybe_match_name.has_value()) { rval = rval && std::regex_match(m.name, rmatch, maybe_match_name.value()); }
 		if (maybe_match_man_id.has_value()) { rval = rval && (maybe_match_man_id.value() == m.man_id); }
 		if (maybe_match_prod_id.has_value()) { rval = rval && (maybe_match_prod_id.value() == m.prod_id); }
 		if (maybe_match_driver_version.has_value()) { rval = rval && (maybe_match_driver_version.value() == m.driver_version); }
