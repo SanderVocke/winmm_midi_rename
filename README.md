@@ -68,5 +68,13 @@ Apart from the config, the following env vars are supported:
 
 For this to work in Wine, set the winmm library to "native then builtin" on the Libraries setting of winecfg. You can use the logging settings above to generate a log file, which confirms that the correct DLL was loaded (this is not reported by WINEDEBUG=+loaddll for some reason).
 
+## Approach to WINE fixes
+
+If your goal is to get your MIDI device recognized by some software in WINE as it would under Windows, then your steps can be as follows:
+
+- Install this wrapper DLL with your application on Windows and run it with MIDI_REPLACE_LOGFILE=some_file.log. After connecting your device and closing the app, inspect the log to find the relevant device properties of your device under Windows (name, man ID, prod ID, driver version).
+- Do the same in WINE.
+- As for the Joue Play example above, create renaming rules such that the WINE name and other properties will be mapped to the Windows name and properties. The software should now recognize your device.
+
 # License
 See [LICENSE](LICENSE).
