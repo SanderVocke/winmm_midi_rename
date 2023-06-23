@@ -141,15 +141,52 @@ std::string stringify_caps(dev_caps_struct const& s) {
 		std::string("}");
 }
 
-void load_config(std::string filename, std::optional<std::string> &out_log_filename, bool &out_debug_popup) {
+std::string abs_path_of(FILE* file) {
+	char file_name_info[MAX_PATH + sizeof(DWORD)];
+	if (GetFileInformationByHandleEx((HANDLE)_get_osfhandle(fileno(file)),
+		FileNameInfo,
+		(void*)file_name_info,
+		sizeof(file_name_info))) {
+		auto _info = (FILE_NAME_INFO*)file_name_info;
+		std::wstring name(_info->FileName);
+		return std::string(name.begin(), name.end());
+	}
+	throw std::runtime_error("Unable to get filename from descriptor");
+}
+
+std::string read_whole_file(std::string filename, std::string* maybe_abs_path_out) {
+	FILE* f = fopen(filename.c_str(), "rb");
+	if (!f) {
+		throw std::runtime_error("Unable to open for reading: " + filename);
+	}
+	if (maybe_abs_path_out) {
+		*maybe_abs_path_out = abs_path_of(f);
+	}
+	fseek(f, 0, SEEK_END);
+	long fsize = ftell(f);
+	fseek(f, 0, SEEK_SET);  /* same as rewind(f); */
+
+	char* string = (char*)malloc(fsize + 1);
+	if (!string) {
+		throw std::runtime_error("Unable to alloc");
+	}
+	fread(string, fsize, 1, f);
+	fclose(f);
+
+	string[fsize] = 0;
+	return std::string(string);
+}
+
+
+void load_config(std::string filename, std::optional<std::string> &out_log_filename, std::optional<std::string> &out_config_abspath, bool &out_debug_popup) {
 	try {
 		wrapper_log("Loading config from %s\n", filename.c_str());
 
-		std::ifstream f(filename);
-		std::stringstream buffer;
-		buffer << f.rdbuf();
-		wrapper_log("Config: %s\n", buffer.str().c_str());
-		json data = json::parse(buffer.str());
+		std::string abspath;
+		auto config_content = read_whole_file(filename, &abspath);
+		out_config_abspath = abspath;
+		wrapper_log("Config from %s: %s\n", abspath.c_str(), config_content.c_str());
+		json data = json::parse(config_content);
 
 		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
@@ -227,10 +264,10 @@ std::string last_error_string()
 
 void configure() {
 	char* maybe_env;
-	std::string try_config_file;
+	std::string try_config_file = "midi_rename_config.json";
 	bool success = true;
 	bool debug_popup = true;
-	std::optional<std::string> maybe_logfilename;
+	std::optional<std::string> maybe_logfilename, maybe_configabspath;
 
 	try {
 		// Config file
@@ -238,13 +275,9 @@ void configure() {
 		if ((maybe_env = getenv("MIDI_REPLACE_CONFIGFILE")) != NULL) {
 			try_config_file = std::string(maybe_env);
 		}
-		else if (GetModuleFileNameA(NULL, default_file_path, MAX_PATH) > 0) {
-			size_t found;
-			found = std::string(default_file_path).find_last_of("/\\"); // Get path from file
-			// By default, load a file from the executable's location
-			try_config_file = std::string(default_file_path).substr(0, found) + "\\midi_replace_config.json";
+		if (try_config_file.length() > 0) {
+			load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup);
 		}
-		if (try_config_file.length() > 0) { load_config(try_config_file, maybe_logfilename, debug_popup); }
 
 		// Log filename override
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
@@ -273,24 +306,19 @@ void configure() {
 			"MIDI device renamer failed to initialize.\n";
 
 		if (g_maybe_wrapper_log_file) {
-			char file_name_info[MAX_PATH + sizeof(DWORD)];
-			if (GetFileInformationByHandleEx((HANDLE)_get_osfhandle(fileno(g_maybe_wrapper_log_file)),
-				FileNameInfo,
-				(void*)file_name_info,
-				sizeof(file_name_info))) {
-				auto _info = (FILE_NAME_INFO*)file_name_info;
-				std::wstring name(_info->FileName);
-				msg += "Logging to: " + std::string(name.begin(), name.end()) + "\n";
-			}
-			else {
-				msg += "Logging to: unknown (" + last_error_string() + ")\n";
-			}
+			msg += "Logging to: " + abs_path_of(g_maybe_wrapper_log_file) + "\n";
 		}
 		else {
 			msg += "No log file specified.\n";
 		}
 
 		msg += "Config search path: " + try_config_file + "\n";
+		if (maybe_configabspath.has_value()) {
+			msg += "Config found @: " + maybe_configabspath.value() + "\n";
+		}
+		else {
+			msg += "Config not found!\n";
+		}
 		msg += "# of rules loaded: " + std::to_string(g_replace_rules.size()) + "\n";
 		msg += "To disable this popup, set \"popup\" to false in the config.\n";
 

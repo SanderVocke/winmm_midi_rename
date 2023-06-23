@@ -15,7 +15,7 @@ Download or build **winmm.dll** and place it in the same folder as your executab
 
 # Configuration
 
-By default, the DLL looks for its configuration in **executable_path/midi_rename_config.json**. The example below serves to make the Joue Play MIDI controller work in WINE:
+By default, the DLL looks for its configuration in **midi_rename_config.json** in the working directory. The example below serves to make the Joue Play MIDI controller work in WINE:
 
 ```
 {
@@ -50,7 +50,7 @@ By default, the DLL looks for its configuration in **executable_path/midi_rename
 ```
 Walkthrough of the config:
 - "log": sets a file to log to. This is optional but can be helpful when debugging rules.
-- "popup": true / false. If true or absent, a popup will be shown with debug info before the application starts. Useful for debugging DLL loading issues and/or configuration issues.
+- "popup": true / false. If true or absent, or if this config was not found, a popup will be shown with debug info before the application starts. Useful for debugging DLL loading issues and/or configuration issues.
 - "rules": an array of rule objects which determine which devices should be modified and how:
   - "match_name", "match_direction" (in/out, referring to whether it's an input or output device), "match_man_id" (manufacturer ID), "match_prod_id" (product ID), "match_driver_version" will compare the given properties (as in the midiXXXGetDeviceCaps structure). In a single rule, matching on all of the given keys (they are ANDed, not ORed) will result in a match.
   - "replace_XXX" for the same properties (except direction of course) will then overwrite said property with a particular value.
