@@ -178,7 +178,7 @@ std::string read_whole_file(std::string filename, std::string* maybe_abs_path_ou
 }
 
 
-void load_config(
+bool load_config(
 	std::string filename,
 	std::optional<std::string> &out_log_filename,
 	std::optional<std::string> &out_config_abspath,
@@ -237,10 +237,13 @@ void load_config(
 	}
 	catch (std::exception& e) {
 		log << "Unable to load config from " << filename << ".Continuing without replace rules.Exception:\n" << e.what() << "\n";
+		return false;
 	}
 	catch (...) {
 		log << "Unable to load config from " << filename << ".Continuing without replace rules. (unknown exception)\n";
+		return false;
 	}
+	return true;
 }
 
 std::string last_error_string()
@@ -282,7 +285,7 @@ void configure() {
 			try_config_file = std::string(maybe_env);
 		}
 		if (try_config_file.length() > 0) {
-			load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, config_log);
+			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, config_log);
 		}
 
 		// Log filename override
@@ -312,6 +315,10 @@ void configure() {
 		std::string msg = success ?
 			"MIDI device renamer started successfully.\n" :
 			"MIDI device renamer failed to initialize.\n";
+
+		if (!success) {
+			msg += config_log.str() + "\n";
+		}
 
 		if (g_maybe_wrapper_log_file) {
 			msg += "Logging to: " + abs_path_of(g_maybe_wrapper_log_file) + "\n";
