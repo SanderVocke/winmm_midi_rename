@@ -12,6 +12,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <io.h>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -140,7 +141,7 @@ std::string stringify_caps(dev_caps_struct const& s) {
 		std::string("}");
 }
 
-void load_config(std::string filename) {
+void load_config(std::string filename, std::optional<std::string> &out_log_filename, bool &out_debug_popup) {
 	try {
 		wrapper_log("Loading config from %s\n", filename.c_str());
 
@@ -150,6 +151,8 @@ void load_config(std::string filename) {
 		wrapper_log("Config: %s\n", buffer.str().c_str());
 		json data = json::parse(buffer.str());
 
+		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); }
+		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
 		if (data.contains("rules")) {
 			auto& rules = data["rules"];
 			for (auto& rule : rules) {
@@ -198,29 +201,101 @@ void load_config(std::string filename) {
 	}
 }
 
+std::string last_error_string()
+{
+	//Get the error message ID, if any.
+	DWORD errorMessageID = ::GetLastError();
+	if (errorMessageID == 0) {
+		return std::string(); //No error message has been recorded
+	}
+
+	LPSTR messageBuffer = nullptr;
+
+	//Ask Win32 to give us the string version of that message ID.
+	//The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
+	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+	//Copy the error message into a std::string.
+	std::string message(messageBuffer, size);
+
+	//Free the Win32's string's buffer.
+	LocalFree(messageBuffer);
+
+	return message;
+}
+
 void configure() {
 	char* maybe_env;
 	std::string try_config_file;
+	bool success = true;
+	bool debug_popup = true;
+	std::optional<std::string> maybe_logfilename;
 
-	// Log file
-	if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
-		g_maybe_wrapper_log_file = fopen(maybe_env, "w+");
-		fprintf(g_maybe_wrapper_log_file, "Start MIDI replace\n");
+	try {
+		// Config file
+		char default_file_path[MAX_PATH];
+		if ((maybe_env = getenv("MIDI_REPLACE_CONFIGFILE")) != NULL) {
+			try_config_file = std::string(maybe_env);
+		}
+		else if (GetModuleFileNameA(NULL, default_file_path, MAX_PATH) > 0) {
+			size_t found;
+			found = std::string(default_file_path).find_last_of("/\\"); // Get path from file
+			// By default, load a file from the executable's location
+			try_config_file = std::string(default_file_path).substr(0, found) + "\\midi_replace_config.json";
+		}
+		if (try_config_file.length() > 0) { load_config(try_config_file, maybe_logfilename, debug_popup); }
+
+		// Log filename override
+		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
+			maybe_logfilename = std::string(maybe_env);
+		}
+
+		// Open the logfile for writing
+		if (maybe_logfilename.has_value()) {
+			g_maybe_wrapper_log_file = fopen(maybe_logfilename.value().c_str(), "w");
+		}
+
+		wrapper_log("Starting MIDI replace with %d rules.\n", g_replace_rules.size());
+	}
+	catch (std::exception &e) {
+		wrapper_log("Failed to start MIDI replace: %s\n", e.what());
+		success = false;
+	}
+	catch (...) {
+		wrapper_log("Failed to start MIDI replace: unknown exception\n");
+		success = false;
 	}
 
-	// Config file
-	char default_file_path[MAX_PATH];
-	if ((maybe_env = getenv("MIDI_REPLACE_CONFIGFILE")) != NULL) {
-		try_config_file = std::string(maybe_env);
-	} else if(GetModuleFileNameA(NULL, default_file_path, MAX_PATH) > 0) {
-		size_t found;
-		found = std::string(default_file_path).find_last_of("/\\"); // Get path from file
-		// By default, load a file from the executable's location
-		try_config_file = std::string(default_file_path).substr(0, found) + "/midi_replace_config.json";
-	}
-	if (try_config_file.length() > 0) { load_config(try_config_file); }
+	if (debug_popup) {
+		std::string msg = success ?
+			"MIDI device renamer started successfully.\n" :
+			"MIDI device renamer failed to initialize.\n";
 
-	wrapper_log("Starting MIDI replace with %d rules.\n", g_replace_rules.size());
+		if (g_maybe_wrapper_log_file) {
+			char file_name_info[MAX_PATH + sizeof(DWORD)];
+			if (GetFileInformationByHandleEx((HANDLE)_get_osfhandle(fileno(g_maybe_wrapper_log_file)),
+				FileNameInfo,
+				(void*)file_name_info,
+				sizeof(file_name_info))) {
+				auto _info = (FILE_NAME_INFO*)file_name_info;
+				std::wstring name(_info->FileName);
+				msg += "Logging to: " + std::string(name.begin(), name.end()) + "\n";
+			}
+			else {
+				msg += "Logging to: unknown (" + last_error_string() + ")\n";
+			}
+		}
+		else {
+			msg += "No log file specified.\n";
+		}
+
+		msg += "Config search path: " + try_config_file + "\n";
+		msg += "# of rules loaded: " + std::to_string(g_replace_rules.size()) + "\n";
+		msg += "To disable this popup, set \"popup\" to false in the config.\n";
+
+		MessageBoxA(NULL, msg.c_str(), "Info", 0);
+	}
 }
 
 BOOL DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID fImpLoad) {
