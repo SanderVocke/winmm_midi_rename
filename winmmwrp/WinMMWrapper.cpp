@@ -178,14 +178,19 @@ std::string read_whole_file(std::string filename, std::string* maybe_abs_path_ou
 }
 
 
-void load_config(std::string filename, std::optional<std::string> &out_log_filename, std::optional<std::string> &out_config_abspath, bool &out_debug_popup) {
+void load_config(
+	std::string filename,
+	std::optional<std::string> &out_log_filename,
+	std::optional<std::string> &out_config_abspath,
+	bool &out_debug_popup,
+	std::ostream &log) {
 	try {
-		wrapper_log("Loading config from %s\n", filename.c_str());
+		log << "Loading config from " << filename << "\n";
 
 		std::string abspath;
 		auto config_content = read_whole_file(filename, &abspath);
 		out_config_abspath = abspath;
-		wrapper_log("Config from %s: %s\n", abspath.c_str(), config_content.c_str());
+		log << "Config from " << abspath << ": " << config_content << "\n";
 		json data = json::parse(config_content);
 
 		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); }
@@ -222,19 +227,19 @@ void load_config(std::string filename, std::optional<std::string> &out_log_filen
 					g_replace_rules.push_back(rval);
 				}
 				catch (std::exception& e) {
-					wrapper_log("Skipping rule:\n%s\n", e.what());
+					log << "Skipping rule:\n" << e.what() << "\n";
 				}
 				catch (...) {
-					wrapper_log("Skipping rule (unknown exception)\n");
+					log << "Skipping rule (unknown exception)\n";
 				}
 			}
 		}
 	}
 	catch (std::exception& e) {
-		wrapper_log("Unable to load config from %s. Continuing without replace rules. Exception:\n%s\n", filename.c_str(), e.what());
+		log << "Unable to load config from " << filename << ".Continuing without replace rules.Exception:\n" << e.what() << "\n";
 	}
 	catch (...) {
-		wrapper_log("Unable to load config from %s. Continuing without replace rules. (unknown exception)\n", filename.c_str());
+		log << "Unable to load config from " << filename << ".Continuing without replace rules. (unknown exception)\n";
 	}
 }
 
@@ -268,6 +273,7 @@ void configure() {
 	bool success = true;
 	bool debug_popup = true;
 	std::optional<std::string> maybe_logfilename, maybe_configabspath;
+	std::ostringstream config_log;
 
 	try {
 		// Config file
@@ -276,7 +282,7 @@ void configure() {
 			try_config_file = std::string(maybe_env);
 		}
 		if (try_config_file.length() > 0) {
-			load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup);
+			load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, config_log);
 		}
 
 		// Log filename override
@@ -287,6 +293,8 @@ void configure() {
 		// Open the logfile for writing
 		if (maybe_logfilename.has_value()) {
 			g_maybe_wrapper_log_file = fopen(maybe_logfilename.value().c_str(), "w");
+			// Write our log msgs from loading the config
+			wrapper_log("%s", config_log.str().c_str());
 		}
 
 		wrapper_log("Starting MIDI replace with %d rules.\n", g_replace_rules.size());
