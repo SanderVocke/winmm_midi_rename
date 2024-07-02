@@ -178,16 +178,24 @@ inline void wrapper_log(Args... args) {
 template<typename dev_caps_struct>
 std::string stringify_caps(dev_caps_struct const& s) {
 	constexpr bool out = CapsDirection<dev_caps_struct>() == Direction::Output;
+
+	auto constexpr stringify_output_only =
+	   out ?
+	   []() -> std::string {
+		   return "  technology: " + std::to_string(s.wTechnology) + "\n" +
+			      "  voices: " + std::to_string(s.wVoices) + "\n" +
+			      "  notes: " + std::to_string(s.wNotes) + "\n" +
+			      "  channel mask: " + std::to_string(s.wChannelMask) + "\n" +
+			      "  support: " + std::to_string(s.dwSupport) + "\n";
+	   } :
+	   []() { return ""; };
+
 	return std::string("{\n") +
 		"  name: " + chars_to_str((dev_caps_char_type<dev_caps_struct> *)s.szPname) + "\n" +
 		"  man id: " + std::to_string(s.wMid) + "\n" +
 		"  prod id: " + std::to_string(s.wPid) + "\n" +
 		"  driver version: " + std::to_string(s.vDriverVersion) + "\n" +
-		(out ? "  technology: " + std::to_string(s.wTechnology) + "\n" : "") +
-		(out ? "  voices: " + std::to_string(s.wVoices) + "\n" : "") +
-		(out ? "  notes: " + std::to_string(s.wNotes) + "\n" : "") +
-		(out ? "  channel mask: " + std::to_string(s.wChannelMask) + "\n" : "") +
-		(out ? "  support: " + std::to_string(s.dwSupport) + "\n" : "") +
+		stringify_output_only() +
 		std::string("}");
 }
 
