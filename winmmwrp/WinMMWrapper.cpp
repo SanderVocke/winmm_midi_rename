@@ -176,27 +176,37 @@ inline void wrapper_log(Args... args) {
 }
 
 template<typename dev_caps_struct>
-std::string stringify_caps(dev_caps_struct const& s) {
-	constexpr bool out = CapsDirection<dev_caps_struct>() == Direction::Output;
-
-	auto constexpr stringify_output_only =
-	   out ?
-	   []() -> std::string {
-		   return "  technology: " + std::to_string(s.wTechnology) + "\n" +
-			      "  voices: " + std::to_string(s.wVoices) + "\n" +
-			      "  notes: " + std::to_string(s.wNotes) + "\n" +
-			      "  channel mask: " + std::to_string(s.wChannelMask) + "\n" +
-			      "  support: " + std::to_string(s.dwSupport) + "\n";
-	   } :
-	   []() { return ""; };
-
-	return std::string("{\n") +
+std::string stringify_common_caps(dev_caps_struct const& s) {
+	return
 		"  name: " + chars_to_str((dev_caps_char_type<dev_caps_struct> *)s.szPname) + "\n" +
 		"  man id: " + std::to_string(s.wMid) + "\n" +
 		"  prod id: " + std::to_string(s.wPid) + "\n" +
-		"  driver version: " + std::to_string(s.vDriverVersion) + "\n" +
-		stringify_output_only() +
-		std::string("}");
+		"  driver version: " + std::to_string(s.vDriverVersion) + "\n";
+}
+
+template<typename out_dev_caps_struct>
+std::string stringify_output_caps(out_dev_caps_struct const& s) {
+	return stringify_common_caps(s) +
+	       "  technology: " + std::to_string(s.wTechnology) + "\n" +
+		   "  voices: " + std::to_string(s.wVoices) + "\n" +
+	       "  notes: " + std::to_string(s.wNotes) + "\n" +
+	       "  channel mask: " + std::to_string(s.wChannelMask) + "\n" +
+	       "  support: " + std::to_string(s.dwSupport) + "\n";
+}
+
+template<typename in_dev_caps_struct>
+std::string stringify_input_caps(in_dev_caps_struct const& s) {
+	return stringify_common_caps(s);
+}
+
+template<typename dev_caps_struct>
+std::string stringify_caps(dev_caps_struct const& s) {
+	constexpr bool is_out = CapsDirection<dev_caps_struct>() == Direction::Output;
+	if constexpr (is_out) {
+		return stringify_output_caps(s);
+	} else {
+		return stringify_input_caps(s);
+	}
 }
 
 std::string abs_path_of(FILE* file) {
