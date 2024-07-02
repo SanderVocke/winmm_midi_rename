@@ -65,7 +65,7 @@ std::string chars_to_str(char_t* c) {
 
 template<typename dev_caps_struct>
 midi_dev_caps to_our_dev_caps(dev_caps_struct v) {
-	auto consteval direction = CapsDirection<dev_caps_struct>();
+	auto constexpr direction = CapsDirection<dev_caps_struct>();
 	auto rval = midi_dev_caps{
 		.direction = direction,
 		.man_id = v.wMid,
