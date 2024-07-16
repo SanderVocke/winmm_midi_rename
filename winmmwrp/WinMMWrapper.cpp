@@ -1,9 +1,4 @@
 #include <Windows.h>
-//#include <string.h>
-//#include <stdio.h>
-//#include <locale.h>
-//#include "mmddk.h"
-//#include <time.h>
 
 #include <cstdio>
 #include <type_traits>
@@ -292,12 +287,19 @@ void configure() {
 
 		// Log filename override
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
-			maybe_logfilename = std::string(maybe_env);
+			std::string value {maybe_env};
+			wrapper_log("Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
+			            maybe_logfilename.value_or(std::string("none")).c_str(), std::str)
+			maybe_logfilename = value;
 		}
 
 		// Open the logfile for writing
 		if (maybe_logfilename.has_value()) {
 			g_maybe_wrapper_log_file = fopen(maybe_logfilename.value().c_str(), "w");
+			if (!g_maybe_wrapper_log_file) {
+				wrapper_log("Error: Unable to open log file!\n");
+			}
+
 			// Write our log msgs from loading the config
 			wrapper_log("%s", config_log.str().c_str());
 		}
