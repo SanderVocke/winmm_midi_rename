@@ -187,11 +187,10 @@ bool load_config(
 		std::string abspath;
 		auto config_content = read_whole_file(filename, &abspath);
 		out_config_abspath = abspath;
-		log << "Config string from " << abspath << ": " << config_content << "\n";
 		json data = json::parse(config_content);
 		log << "Parsed config: " << data.dump() << "\n";
 
-		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); }
+		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); log << "LOG " << out_log_filename.value_or("no") << std::endl; }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
 		if (data.contains("rules")) {
 			auto& rules = data["rules"];
@@ -284,6 +283,7 @@ void configure() {
 		}
 		if (try_config_file.length() > 0) {
 			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, config_log);
+			wrapper_log("Log file: %s\n", maybe_logfilename.value_or("none"));
 		}
 
 		// Log filename override
