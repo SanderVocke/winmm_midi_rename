@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <optional>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -295,7 +296,6 @@ void configure() {
 		}
 		if (try_config_file.length() > 0) {
 			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, debug_popup_verbose, config_log);
-			wrapper_log(&pre_popup_log, "Log file: %s\n", maybe_logfilename.value_or("none"));
 		}
 
 		// Log filename override
@@ -308,9 +308,10 @@ void configure() {
 
 		// Open the logfile for writing
 		if (maybe_logfilename.has_value()) {
+		    wrapper_log(&pre_popup_log, "Opening log file: %s\n", maybe_logfilename.value().c_str());
 			g_maybe_wrapper_log_file = fopen(maybe_logfilename.value().c_str(), "w");
 			if (!g_maybe_wrapper_log_file) {
-				wrapper_log(&pre_popup_log, "Error: Unable to open log file!\n");
+				wrapper_log(&pre_popup_log, "Error: Unable to open log file (%s)!\n", strerror(errno));
 			}
 
 			// Write our log msgs from loading the config
