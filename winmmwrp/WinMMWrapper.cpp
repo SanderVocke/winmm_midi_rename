@@ -31,11 +31,20 @@ consteval Direction CapsDirection() {
 }
 
 struct midi_dev_caps {
-	Direction direction;
-	size_t man_id;
-	size_t prod_id;
-	size_t driver_version;
-	std::string name;
+	Direction direction;                                // MIDIINCAPS or MIDIOUTCAPS
+
+	// Common
+	size_t man_id;										// wMid
+	size_t prod_id;										// wPid
+	size_t driver_version;								// vDriverVersion
+	std::string name;									// szPname
+
+	// MIDIOUTCAPS only
+	std::optional<size_t> technology;					// wTechnology
+	std::optional<size_t> voices;						// wVoices
+	std::optional<size_t> notes;						// wNotes
+	std::optional<size_t> channel_mask;					// wChannelMask
+	std::optional<size_t> support; 					    // dwSupport
 };
 
 template<typename dev_caps_struct>
@@ -52,26 +61,46 @@ std::string chars_to_str(char_t* c) {
 
 template<typename dev_caps_struct>
 midi_dev_caps to_our_dev_caps(dev_caps_struct v) {
-	return midi_dev_caps{
-		.direction = CapsDirection<dev_caps_struct>(),
+	auto constexpr direction = CapsDirection<dev_caps_struct>();
+	auto rval = midi_dev_caps{
+		.direction = direction,
 		.man_id = v.wMid,
 		.prod_id = v.wPid,
 		.driver_version = v.vDriverVersion,
 		.name = chars_to_str(v.szPname)
 	};
+
+	if constexpr (direction == Direction::Output) {
+		rval.technology = v.wTechnology;
+		rval.voices = v.wVoices;
+		rval.notes = v.wNotes;
+		rval.channel_mask = v.wChannelMask;
+		rval.support = v.dwSupport;
+	}
+
+	return rval;
 }
 
 struct replace_rule {
+	// Matching only on common properties
 	std::optional<Direction> maybe_match_direction;
 	std::optional<std::regex> maybe_match_name;
 	std::optional<size_t> maybe_match_man_id;
 	std::optional<size_t> maybe_match_prod_id;
 	std::optional<size_t> maybe_match_driver_version;
 
+	// Replacing common properties
 	std::optional <std::string> maybe_replace_name;
 	std::optional <size_t> maybe_replace_man_id;
 	std::optional <size_t> maybe_replace_prod_id;
 	std::optional <size_t> maybe_replace_driver_version;
+
+	// Replacing output device properties
+	std::optional<size_t> maybe_replace_technology;
+	std::optional<size_t> maybe_replace_voices;
+	std::optional<size_t> maybe_replace_notes;
+	std::optional<size_t> maybe_replace_channel_mask;
+	std::optional<size_t> maybe_replace_support;
 
 	bool is_match(midi_dev_caps const& m) const {
 		bool rval = true;
@@ -91,6 +120,11 @@ struct replace_rule {
 			if (maybe_replace_man_id.has_value()) { m.man_id = maybe_replace_man_id.value(); }
 			if (maybe_replace_prod_id.has_value()) { m.prod_id = maybe_replace_prod_id.value(); }
 			if (maybe_replace_driver_version.has_value()) { m.driver_version = maybe_replace_driver_version.value(); }
+			if (maybe_replace_technology.has_value()) { m.technology = maybe_replace_technology.value(); }
+			if (maybe_replace_voices.has_value()) { m.voices = maybe_replace_voices.value(); }
+			if (maybe_replace_notes.has_value()) { m.notes = maybe_replace_notes.value(); }
+			if (maybe_replace_channel_mask.has_value()) { m.channel_mask = maybe_replace_channel_mask.value(); }
+			if (maybe_replace_support.has_value()) { m.support = maybe_replace_support.value(); }
 		}
 		return match;
 	}
@@ -107,6 +141,14 @@ struct replace_rule {
 				wcscpy((WCHAR*)s.szPname, std::wstring(ours.name.begin(), ours.name.end()).c_str());
 			} else {
 				strcpy((CHAR*)s.szPname, ours.name.c_str());
+			}
+
+			if constexpr (CapsDirection<dev_caps_struct>() == Direction::Output) {
+				s.wTechnology = ours.technology.value();
+				s.wVoices = ours.voices.value();
+				s.wNotes = ours.notes.value();
+				s.wChannelMask = ours.channel_mask.value();
+				s.dwSupport = ours.support.value();
 			}
 		}
 		return matched;
@@ -138,13 +180,37 @@ inline void wrapper_log(std::ostringstream* maybe_os, Args... args) {
 }
 
 template<typename dev_caps_struct>
+std::string stringify_common_caps(dev_caps_struct const& s) {
+	return
+		"  name: " + chars_to_str((dev_caps_char_type<dev_caps_struct> *)s.szPname) + "\n" +
+		"  man id: " + std::to_string(s.wMid) + "\n" +
+		"  prod id: " + std::to_string(s.wPid) + "\n" +
+		"  driver version: " + std::to_string(s.vDriverVersion) + "\n";
+}
+
+template<typename out_dev_caps_struct>
+std::string stringify_output_caps(out_dev_caps_struct const& s) {
+	return stringify_common_caps(s) +
+	       "  technology: " + std::to_string(s.wTechnology) + "\n" +
+		   "  voices: " + std::to_string(s.wVoices) + "\n" +
+	       "  notes: " + std::to_string(s.wNotes) + "\n" +
+	       "  channel mask: " + std::to_string(s.wChannelMask) + "\n" +
+	       "  support: " + std::to_string(s.dwSupport) + "\n";
+}
+
+template<typename in_dev_caps_struct>
+std::string stringify_input_caps(in_dev_caps_struct const& s) {
+	return stringify_common_caps(s);
+}
+
+template<typename dev_caps_struct>
 std::string stringify_caps(dev_caps_struct const& s) {
-	return std::string("{\n") +
-		"  name: " + chars_to_str((dev_caps_char_type<dev_caps_struct> *)s.szPname) + ",\n" +
-		"  man id: " + std::to_string(s.wMid) + ",\n" +
-		"  prod id: " + std::to_string(s.wPid) + ",\n" +
-		"  driver version: " + std::to_string(s.vDriverVersion) + "\n" +
-		std::string("}");
+	constexpr bool is_out = CapsDirection<dev_caps_struct>() == Direction::Output;
+	if constexpr (is_out) {
+		return stringify_output_caps(s);
+	} else {
+		return stringify_input_caps(s);
+	}
 }
 
 std::string abs_path_of(FILE* file) {
@@ -224,11 +290,21 @@ bool load_config(
 					if (rule.contains("replace_man_id")) { rval.maybe_replace_man_id = rule["replace_man_id"].template get<size_t>(); }
 					if (rule.contains("replace_prod_id")) { rval.maybe_replace_prod_id = rule["replace_prod_id"].template get<size_t>(); }
 					if (rule.contains("replace_driver_version")) { rval.maybe_replace_driver_version = rule["replace_driver_version"].template get<size_t>(); }
+					if (rule.contains("replace_technology")) { rval.maybe_replace_technology = rule["replace_technology"].template get<size_t>(); }
+					if (rule.contains("replace_voices")) { rval.maybe_replace_voices = rule["replace_voices"].template get<size_t>(); }
+					if (rule.contains("replace_notes")) { rval.maybe_replace_notes = rule["replace_notes"].template get<size_t>(); }
+					if (rule.contains("replace_channel_mask")) { rval.maybe_replace_channel_mask = rule["replace_channel_mask"].template get<size_t>(); }
+					if (rule.contains("replace_support")) { rval.maybe_replace_support = rule["replace_support"].template get<size_t>(); }
 
 					if (!rval.maybe_replace_name.has_value() &&
 						!rval.maybe_replace_driver_version.has_value() &&
 						!rval.maybe_replace_man_id.has_value() &&
-						!rval.maybe_replace_prod_id.has_value()) {
+						!rval.maybe_replace_prod_id.has_value() &&
+						!rval.maybe_replace_technology.has_value() &&
+						!rval.maybe_replace_voices.has_value() &&
+						!rval.maybe_replace_notes.has_value() &&
+						!rval.maybe_replace_channel_mask.has_value() &&
+						!rval.maybe_replace_support.has_value()) {
 						throw std::runtime_error("No replace items set for rule, would not affect anything.");
 					}
 
