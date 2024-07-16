@@ -49,7 +49,7 @@ By default, the DLL looks for its configuration in **midi_rename_config.json** i
 }
 ```
 Walkthrough of the config:
-- "log": sets a file to log to. This is optional but can be helpful when debugging rules.
+- "log": sets a file to log to. This is optional but can be helpful when debugging rules. Ensure that your default user has permission to create/write this file. Often in installed application folders (e.g. Program Files on windows), this is not the case.
 - "popup": true / false. If true or absent, or if this config was not found, a popup will be shown with debug info before the application starts. Useful for debugging DLL loading issues and/or configuration issues.
 - "rules": an array of rule objects which determine which devices should be modified and how:
   - "match_name", "match_direction" (in/out, referring to whether it's an input or output device), "match_man_id" (manufacturer ID), "match_prod_id" (product ID), "match_driver_version" will compare the given properties (as in the midiXXXGetDeviceCaps structure). In a single rule, matching on all of the given keys (they are ANDed, not ORed) will result in a match. Note that "match_name" is a regex (although capturing groups and printing them in the replacement is not supported).
