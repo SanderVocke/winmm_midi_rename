@@ -1,0 +1,30 @@
+{
+    "log": midi_rename.log,
+    "popup": true,
+    "popup_verbose": false,
+    "rules": [
+      {
+        "match_name": "Joue - Joue Play",
+        "replace_name": "Joue",
+        "replace_man_id": 65535,
+        "replace_prod_id": 65535,
+        "replace_driver_version": 0
+      },
+      {
+        "match_name": "Joue - Joue Edit",
+        "match_direction": "in",
+        "replace_name": "MIDIIN2 (Joue)",
+        "replace_man_id": 65535,
+        "replace_prod_id": 65535,
+        "replace_driver_version": 0
+      },
+      {
+        "match_name": "Joue - Joue Edit",
+        "match_direction": "out",
+        "replace_name": "MIDIOUT2 (Joue)",
+        "replace_man_id": 65535,
+        "replace_prod_id": 65535,
+        "replace_driver_version": 0
+      }
+    ]
+  }

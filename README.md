@@ -15,12 +15,15 @@ Download or build **winmm.dll** and place it in the same folder as your executab
 
 # Configuration
 
-By default, the DLL looks for its configuration in **midi_rename_config.json** in the working directory. The example below serves to make the Joue Play MIDI controller work in WINE:
+By default, the DLL looks for its configuration in **midi_rename_config.json** in the working directory. Known working configuration examples are available in the **known_configurations** folder on this repository.
+
+For example, the config below serves to make the Joue Play MIDI controller work in WINE:
 
 ```
 {
   "log": midi_rename.log,
   "popup": true,
+  "popup_verbose": false,
   "rules": [
     {
       "match_name": "Joue - Joue Play",
