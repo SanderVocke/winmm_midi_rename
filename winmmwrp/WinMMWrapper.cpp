@@ -293,13 +293,13 @@ void configure() {
 		}
 		if (try_config_file.length() > 0) {
 			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, config_log);
-			wrapper_log(pre_popup_log, "Log file: %s\n", maybe_logfilename.value_or("none"));
+			wrapper_log(&pre_popup_log, "Log file: %s\n", maybe_logfilename.value_or("none"));
 		}
 
 		// Log filename override
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
 			std::string value {maybe_env};
-			wrapper_log(pre_popup_log, "Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
+			wrapper_log(&pre_popup_log, "Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
 			            maybe_logfilename.value_or(std::string("none")).c_str(), value);
 			maybe_logfilename = value;
 		}
@@ -308,21 +308,21 @@ void configure() {
 		if (maybe_logfilename.has_value()) {
 			g_maybe_wrapper_log_file = fopen(maybe_logfilename.value().c_str(), "w");
 			if (!g_maybe_wrapper_log_file) {
-				wrapper_log(pre_popup_log, "Error: Unable to open log file!\n");
+				wrapper_log(&pre_popup_log, "Error: Unable to open log file!\n");
 			}
 
 			// Write our log msgs from loading the config
-			wrapper_log(pre_popup_log, "%s", config_log.str().c_str());
+			wrapper_log(&pre_popup_log, "%s", config_log.str().c_str());
 		}
 
-		wrapper_log(pre_popup_log, "Starting MIDI replace with %d rules.\n", g_replace_rules.size());
+		wrapper_log(&pre_popup_log, "Starting MIDI replace with %d rules.\n", g_replace_rules.size());
 	}
 	catch (std::exception &e) {
-		wrapper_log(pre_popup_log, "Failed to start MIDI replace: %s\n", e.what());
+		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: %s\n", e.what());
 		success = false;
 	}
 	catch (...) {
-		wrapper_log(pre_popup_log, "Failed to start MIDI replace: unknown exception\n");
+		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: unknown exception\n");
 		success = false;
 	}
 
