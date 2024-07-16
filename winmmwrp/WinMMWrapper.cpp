@@ -188,6 +188,7 @@ bool load_config(
 	std::optional<std::string> &out_log_filename,
 	std::optional<std::string> &out_config_abspath,
 	bool &out_debug_popup,
+	bool &out_debug_popup_verbose,
 	std::ostream &log) {
 	try {
 		log << "Loading config from " << filename << "\n";
@@ -200,6 +201,7 @@ bool load_config(
 
 		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); log << "LOG " << out_log_filename.value_or("no") << std::endl; }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
+		if (data.contains("popup_verbose")) { out_debug_popup_verbose = data["popup_verbose"].template get <bool>(); }
 		if (data.contains("rules")) {
 			auto& rules = data["rules"];
 			for (auto& rule : rules) {
@@ -292,7 +294,7 @@ void configure() {
 			try_config_file = std::string(maybe_env);
 		}
 		if (try_config_file.length() > 0) {
-			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, config_log);
+			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, debug_popup_verbose, config_log);
 			wrapper_log(&pre_popup_log, "Log file: %s\n", maybe_logfilename.value_or("none"));
 		}
 
