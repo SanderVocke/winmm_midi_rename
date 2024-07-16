@@ -187,8 +187,9 @@ bool load_config(
 		std::string abspath;
 		auto config_content = read_whole_file(filename, &abspath);
 		out_config_abspath = abspath;
-		log << "Config from " << abspath << ": " << config_content << "\n";
+		log << "Config string from " << abspath << ": " << config_content << "\n";
 		json data = json::parse(config_content);
+		log << "Parsed config: " << data.dump() << "\n";
 
 		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
