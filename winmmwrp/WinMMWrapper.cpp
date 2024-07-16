@@ -1,14 +1,10 @@
 #include <Windows.h>
-//#include <string.h>
-//#include <stdio.h>
-//#include <locale.h>
-//#include "mmddk.h"
-//#include <time.h>
 
 #include <cstdio>
 #include <type_traits>
 #include <optional>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -127,9 +123,17 @@ std::vector<replace_rule> g_replace_rules;
 FILE* g_maybe_wrapper_log_file = NULL;
 
 template<typename ...Args>
-inline void wrapper_log(Args... args) {
+inline void wrapper_log(std::ostringstream* maybe_os, Args... args) {
+	std::vector<char> logbuf(1024);
+
 	if (g_maybe_wrapper_log_file) {
 		fprintf(g_maybe_wrapper_log_file, args...);
+	}
+	if (maybe_os) {
+		auto n_needed = snprintf(logbuf.data(), 0, args...);
+		if (n_needed >= logbuf.size()) { logbuf.resize(n_needed+1); }
+		snprintf(logbuf.data(), logbuf.size(), args...);
+		(*maybe_os) << logbuf.data();
 	}
 }
 
@@ -185,6 +189,7 @@ bool load_config(
 	std::optional<std::string> &out_log_filename,
 	std::optional<std::string> &out_config_abspath,
 	bool &out_debug_popup,
+	bool &out_debug_popup_verbose,
 	std::ostream &log) {
 	try {
 		log << "Loading config from " << filename << "\n";
@@ -192,11 +197,12 @@ bool load_config(
 		std::string abspath;
 		auto config_content = read_whole_file(filename, &abspath);
 		out_config_abspath = abspath;
-		log << "Config from " << abspath << ": " << config_content << "\n";
 		json data = json::parse(config_content);
+		log << "Parsed config: " << data.dump() << "\n";
 
-		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); }
+		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); log << "LOG " << out_log_filename.value_or("no") << std::endl; }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
+		if (data.contains("popup_verbose")) { out_debug_popup_verbose = data["popup_verbose"].template get <bool>(); }
 		if (data.contains("rules")) {
 			auto& rules = data["rules"];
 			for (auto& rule : rules) {
@@ -277,8 +283,10 @@ void configure() {
 	std::string try_config_file = "midi_rename_config.json";
 	bool success = true;
 	bool debug_popup = true;
+	bool debug_popup_verbose = false;
 	std::optional<std::string> maybe_logfilename, maybe_configabspath;
 	std::ostringstream config_log;
+	std::ostringstream pre_popup_log;
 
 	try {
 		// Config file
@@ -287,29 +295,37 @@ void configure() {
 			try_config_file = std::string(maybe_env);
 		}
 		if (try_config_file.length() > 0) {
-			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, config_log);
+			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, debug_popup_verbose, config_log);
 		}
 
 		// Log filename override
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
-			maybe_logfilename = std::string(maybe_env);
+			std::string value {maybe_env};
+			wrapper_log(&pre_popup_log, "Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
+			            maybe_logfilename.value_or(std::string("none")).c_str(), value);
+			maybe_logfilename = value;
 		}
 
 		// Open the logfile for writing
 		if (maybe_logfilename.has_value()) {
+		    wrapper_log(&pre_popup_log, "Opening log file: %s\n", maybe_logfilename.value().c_str());
 			g_maybe_wrapper_log_file = fopen(maybe_logfilename.value().c_str(), "w");
+			if (!g_maybe_wrapper_log_file) {
+				wrapper_log(&pre_popup_log, "Error: Unable to open log file (%s)!\n", strerror(errno));
+			}
+
 			// Write our log msgs from loading the config
-			wrapper_log("%s", config_log.str().c_str());
+			wrapper_log(&pre_popup_log, "%s", config_log.str().c_str());
 		}
 
-		wrapper_log("Starting MIDI replace with %d rules.\n", g_replace_rules.size());
+		wrapper_log(&pre_popup_log, "Starting MIDI replace with %d rules.\n", g_replace_rules.size());
 	}
 	catch (std::exception &e) {
-		wrapper_log("Failed to start MIDI replace: %s\n", e.what());
+		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: %s\n", e.what());
 		success = false;
 	}
 	catch (...) {
-		wrapper_log("Failed to start MIDI replace: unknown exception\n");
+		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: unknown exception\n");
 		success = false;
 	}
 
@@ -337,6 +353,14 @@ void configure() {
 			msg += "Config not found!\n";
 		}
 		msg += "# of rules loaded: " + std::to_string(g_replace_rules.size()) + "\n";
+
+		if (debug_popup_verbose) {
+			msg += "Detailed log (desable by setting \"popup_verbose\" to false in the config):\n";
+			msg += pre_popup_log.str();
+		} else {
+			msg += "To include detailed log info up to this point into the popup, set \"popup_verbose\" to true in the config.\n";
+		}
+
 		msg += "To disable this popup, set \"popup\" to false in the config.\n";
 
 		MessageBoxA(NULL, msg.c_str(), "Info", 0);
@@ -370,10 +394,10 @@ BOOL DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID fImpLoad) {
 
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsA(deviceId, pmoc, cpmoc);
-	wrapper_log("\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log("--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
@@ -381,10 +405,10 @@ MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pm
 
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsW(UINT_PTR deviceId, LPMIDIOUTCAPSW pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsW(deviceId, pmoc, cpmoc);
-	wrapper_log("\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log("--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
@@ -392,10 +416,10 @@ MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsW(UINT_PTR deviceId, LPMIDIOUTCAPSW pm
 
 MMRESULT WINAPI OVERRIDE_midiInGetDevCapsA(UINT_PTR deviceId, LPMIDIINCAPSA pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiInGetDevCapsA(deviceId, pmoc, cpmoc);
-	wrapper_log("\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log("--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
@@ -403,10 +427,10 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsA(UINT_PTR deviceId, LPMIDIINCAPSA pmoc
 
 MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiInGetDevCapsW(deviceId, pmoc, cpmoc);
-	wrapper_log("\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log("--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
