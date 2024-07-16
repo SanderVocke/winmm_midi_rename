@@ -341,6 +341,8 @@ void configure() {
 		msg += "# of rules loaded: " + std::to_string(g_replace_rules.size()) + "\n";
 		msg += "To disable this popup, set \"popup\" to false in the config.\n";
 
+		msg += config_log.str();
+
 		MessageBoxA(NULL, msg.c_str(), "Info", 0);
 	}
 }
