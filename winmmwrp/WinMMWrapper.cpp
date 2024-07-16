@@ -122,7 +122,7 @@ std::vector<replace_rule> g_replace_rules;
 FILE* g_maybe_wrapper_log_file = NULL;
 
 template<typename ...Args>
-inline void wrapper_log(std::optional<std::ostringstream> maybe_os, Args... args) {
+inline void wrapper_log(std::ostringstream* maybe_os, Args... args) {
 	std::vector<char> logbuf(1024);
 
 	if (g_maybe_wrapper_log_file) {
@@ -132,7 +132,7 @@ inline void wrapper_log(std::optional<std::ostringstream> maybe_os, Args... args
 		auto n_needed = snprintf(logbuf.data(), 0, args...);
 		if (n_needed >= logbuf.size()) { logbuf.resize(n_needed+1); }
 		snprintf(logbuf.data(), logbuf.size(), args...);
-		maybe_os << logbuf.data();
+		(*maybe_os) << logbuf.data();
 	}
 }
 
@@ -391,10 +391,10 @@ BOOL DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID fImpLoad) {
 
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsA(deviceId, pmoc, cpmoc);
-	wrapper_log(std::nullopt, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log(std::nullopt, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
@@ -402,10 +402,10 @@ MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pm
 
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsW(UINT_PTR deviceId, LPMIDIOUTCAPSW pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsW(deviceId, pmoc, cpmoc);
-	wrapper_log(std::nullopt, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log(std::nullopt, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
@@ -413,10 +413,10 @@ MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsW(UINT_PTR deviceId, LPMIDIOUTCAPSW pm
 
 MMRESULT WINAPI OVERRIDE_midiInGetDevCapsA(UINT_PTR deviceId, LPMIDIINCAPSA pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiInGetDevCapsA(deviceId, pmoc, cpmoc);
-	wrapper_log(std::nullopt, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log(std::nullopt, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
@@ -424,10 +424,10 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsA(UINT_PTR deviceId, LPMIDIINCAPSA pmoc
 
 MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiInGetDevCapsW(deviceId, pmoc, cpmoc);
-	wrapper_log(std::nullopt, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
-			wrapper_log(std::nullopt, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
 	}
 	return rval;
