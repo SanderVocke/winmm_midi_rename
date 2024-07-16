@@ -289,7 +289,7 @@ void configure() {
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
 			std::string value {maybe_env};
 			wrapper_log("Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
-			            maybe_logfilename.value_or(std::string("none")).c_str(), std::str)
+			            maybe_logfilename.value_or(std::string("none")).c_str(), value);
 			maybe_logfilename = value;
 		}
 
