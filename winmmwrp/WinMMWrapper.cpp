@@ -511,3 +511,60 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc
 	}
 	return rval;
 }
+
+template<typename hm>
+MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, hm hm, DWORD_PTR dw1, DWORD_PTR dw2) {
+	ULONG sz;
+	MMRESULT rval;
+	rval = devDirection == Direction::Input ?
+		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, &sz, dw2) :
+		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, &sz, dw2);
+	wrapper_log(nullptr, "Queried device interface size for "
+	                     + (devDirection == Direction::Input ? "input" : "output")
+						 + ". Native result: %d\n", sz);
+	return rval;
+}
+
+template<typename hm>
+MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, hm hm, DWORD_PTR dw1, DWORD_PTR dw2) {
+	MMRESULT rval;
+	rval = devDirection == Direction::Input ?
+		MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2) :
+		MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2);
+	wrapper_log(nullptr, "Queried device interface name for "
+	                     + (devDirection == Direction::Input ? "input" : "output")
+						 + ". Native result: %ls\n", dw1);
+	return rval;
+}
+
+MMRESULT WINAPI OVERRIDE_WINMM_midiOutMessage(
+	_In_opt_ HMIDIOUT hmo,
+	_In_ UINT uMsg,
+	_In_opt_ DWORD_PTR dw1,
+	_In_opt_ DWORD_PTR dw2
+) {
+	switch (uMsg) {
+		case DRV_QUERYDEVICEINTERFACESIZE:
+			return handle_QUERYDEVICEINTERFACESIZE(Direction::Output, hmo, uMsg, dw1, dw2);
+		case DRV_QUERYDEVICEINTERFACE:
+			return handle_QUERYDEVICEINTERFACE(Direction::Output, hmo, uMsg, dw1, dw2);
+		default:
+			return MMmidiOutMessage(hmo, uMsg, dw1, dw2);
+	};
+}
+
+MMRESULT WINAPI OVERRIDE_WINMM_midiInMessage(
+	_In_opt_ HMIDIIN hmi,
+	_In_ UINT uMsg,
+	_In_opt_ DWORD_PTR dw1,
+	_In_opt_ DWORD_PTR dw2
+) {
+	switch (uMsg) {
+		case DRV_QUERYDEVICEINTERFACESIZE:
+			return handle_QUERYDEVICEINTERFACESIZE(Direction::Input, hmi, uMsg, dw1, dw2);
+		case DRV_QUERYDEVICEINTERFACE:
+			return handle_QUERYDEVICEINTERFACE(Direction::Input, hmi, uMsg, dw1, dw2);
+		default:
+			return MMmidiInMessage(hmo, uMsg, dw1, dw2);
+	};
+}

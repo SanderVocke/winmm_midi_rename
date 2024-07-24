@@ -59,7 +59,7 @@ EXPORTS
 	midiInGetErrorTextW				= WINMM_midiInGetErrorTextW
 	midiInGetID						= WINMM_midiInGetID
 	midiInGetNumDevs				= WINMM_midiInGetNumDevs
-	midiInMessage					= WINMM_midiInMessage
+	midiInMessage					= OVERRIDE_WINMM_midiInMessage
 	midiInOpen						= WINMM_midiInOpen
 	midiInPrepareHeader				= WINMM_midiInPrepareHeader
 	midiInReset						= WINMM_midiInReset
@@ -77,7 +77,7 @@ EXPORTS
 	midiOutGetNumDevs				= WINMM_midiOutGetNumDevs
 	midiOutGetVolume				= WINMM_midiOutGetVolume
 	midiOutLongMsg					= WINMM_midiOutLongMsg
-	midiOutMessage					= WINMM_midiOutMessage
+	midiOutMessage					= OVERRIDE_WINMM_midiOutMessage
 	midiOutOpen						= WINMM_midiOutOpen
 	midiOutPrepareHeader			= WINMM_midiOutPrepareHeader
 	midiOutReset					= WINMM_midiOutReset
