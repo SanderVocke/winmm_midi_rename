@@ -530,8 +530,8 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	ULONG sz;
 	MMRESULT rval;
 	rval = devDirection == Direction::Input ?
-		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), nullptr) :
-		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), nullptr);
+		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), 0) :
+		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), 0);
 	wrapper_log(nullptr, "Queried device interface size for %s. Native result: %d\n",
 	                     (devDirection == Direction::Input ? "input" : "output"), sz);
 	wchar_t* cache_name = (wchar_t*) malloc(sz);
@@ -546,7 +546,7 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 			int size = sizeof(wchar_t) * rule.replace_interface_name.size() + 1;
 			wrapper_log(nullptr, "--> Matched a replace rule. Returning size %d of: %ls\n", size, rule.replace_interface_name.c_str());
 			auto *ptr = reinterpret_cast<ULONG*>(dw1);
-			*dw1 = size;
+			*ptr = size;
 			break;
 		}
 	}
