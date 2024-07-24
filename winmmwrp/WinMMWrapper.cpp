@@ -536,9 +536,10 @@ std::optional<std::wstring> get_maybe_interface_name_override(Direction devDirec
 		wrapper_log(nullptr, "--> Transparently queried the device interface with result: %s", pmoc.szPname);
 		auto ours = to_our_dev_caps(pmoc);
 		for (auto &rule : g_replace_rules) {
-		if (rule.is_match(ours)) {
-			rval = rule.maybe_replace_interface_name;
-			break;
+			if (rule.is_match(ours)) {
+				rval = rule.maybe_replace_interface_name;
+				break;
+			}
 		}
 	}
 	return rval;
