@@ -526,7 +526,7 @@ std::optional<std::wstring> get_maybe_interface_name_override(Direction devDirec
 		auto ours = to_our_dev_caps(pmoc);
 		for (auto &rule : g_replace_rules) {
 			if (rule.is_match(ours)) {
-				rval = rule.replace_interface_name;
+				rval = rule.maybe_replace_interface_name;
 				break;
 			}
 		}
@@ -537,7 +537,7 @@ std::optional<std::wstring> get_maybe_interface_name_override(Direction devDirec
 		auto ours = to_our_dev_caps(pmoc);
 		for (auto &rule : g_replace_rules) {
 		if (rule.is_match(ours)) {
-			rval = rule.replace_interface_name;
+			rval = rule.maybe_replace_interface_name;
 			break;
 		}
 	}
