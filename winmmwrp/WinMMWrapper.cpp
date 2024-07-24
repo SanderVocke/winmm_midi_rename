@@ -520,21 +520,21 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc
 std::optional<std::wstring> get_maybe_interface_name_override(Direction devDirection, UINT_PTR deviceId) {
 	std::optional<std::wstring> rval;
 	if (devDirection == Direction::Input) {
-		LPMIDIINCAPSW pmoc;
-		MMmidiInGetDevCapsW(deviceId, pmoc, 0);
+		MIDIINCAPSA pmoc;
+		MMmidiInGetDevCapsA(deviceId, &pmoc, 0);
 		wrapper_log(nullptr, "--> Transparently queried the device interface with result: %s", pmoc->szPname);
 		for (auto &rule : g_replace_rules) {
-		if (rule.is_match(*pmoc)) {
+		if (rule.is_match(devDirection, *pmoc)) {
 			rval = rule.replace_interface_name;
 			break;
 		}
 	}
 	} else {
-		LPMIDIOUTCAPSW pmoc;
-		MMMidiOutGetDevCapsW(deviceId, pmoc, 0);
+		MIDIOUTCAPSA pmoc;
+		MMMidiOutGetDevCapsA(deviceId, &pmoc, 0);
 		wrapper_log(nullptr, "--> Transparently queried the device interface with result: %s", pmoc->szPname);
 		for (auto &rule : g_replace_rules) {
-		if (rule.is_match(*pmoc)) {
+		if (rule.is_match(devDirection, *pmoc)) {
 			rval = rule.replace_interface_name;
 			break;
 		}
