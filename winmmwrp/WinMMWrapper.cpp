@@ -523,18 +523,20 @@ std::optional<std::wstring> get_maybe_interface_name_override(Direction devDirec
 		MIDIINCAPSA pmoc;
 		MMmidiInGetDevCapsA(deviceId, &pmoc, 0);
 		wrapper_log(nullptr, "--> Transparently queried the device interface with result: %s", pmoc.szPname);
+		auto ours = to_our_dev_caps(pmoc);
 		for (auto &rule : g_replace_rules) {
-		if (rule.is_match(pmoc)) {
-			rval = rule.replace_interface_name;
-			break;
+			if (rule.is_match(ours)) {
+				rval = rule.replace_interface_name;
+				break;
+			}
 		}
-	}
 	} else {
 		MIDIOUTCAPSA pmoc;
 		MMMidiOutGetDevCapsA(deviceId, &pmoc, 0);
 		wrapper_log(nullptr, "--> Transparently queried the device interface with result: %s", pmoc.szPname);
+		auto ours = to_our_dev_caps(pmoc);
 		for (auto &rule : g_replace_rules) {
-		if (rule.is_match(pmoc)) {
+		if (rule.is_match(ours)) {
 			rval = rule.replace_interface_name;
 			break;
 		}
