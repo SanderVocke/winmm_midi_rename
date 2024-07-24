@@ -601,6 +601,6 @@ MMRESULT WINAPI OVERRIDE_WINMM_midiInMessage(
 		case DRV_QUERYDEVICEINTERFACE:
 			return handle_QUERYDEVICEINTERFACE(Direction::Input, hmi, dw1, dw2);
 		default:
-			return MMmidiInMessage(hmo, uMsg, dw1, dw2);
+			return MMmidiInMessage(hmi, uMsg, dw1, dw2);
 	};
 }
