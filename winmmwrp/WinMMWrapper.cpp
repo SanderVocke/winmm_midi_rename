@@ -90,7 +90,7 @@ struct drv_query_replace_rule {
 		if (maybe_match_direction.has_value() && maybe_match_direction.value() != d) { return false; }
 		return std::regex_match(name, match_interface_name);
 	}
-}
+};
 
 struct dev_caps_replace_rule {
 	// Matching only on common properties
@@ -564,6 +564,13 @@ MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, hm hm, DWORD_PTR dw
 	                     + (devDirection == Direction::Input ? "input" : "output")
 						 + ". Native result: %ls\n", dw1);
 	std::wstring cache_name(reinterpret_cast<wchar_t*>(dw1));
+	for (auto &rule : g_drv_query_replace_rules) {
+		if (rule.is_match(devDirection, cache_name)) {
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %ls\n", rule.replace_interface_name.c_str());
+			wcscpy(reinterpret_cast<wchar_t*>(dw1), rule.replace_interface_name.c_str());
+			break;
+		}
+	}
 	return rval;
 }
 
