@@ -85,6 +85,11 @@ struct drv_query_replace_rule {
 	std::optional<Direction> maybe_match_direction;
 	std::wregex match_interface_name;
 	std::wstring replace_interface_name;
+
+	bool is_match(Direction d, std::wstring const& name) const {
+		if (maybe_match_direction.has_value() && maybe_match_direction.value() != d) { return false; }
+		return std::regex_match(name, match_interface_name);
+	}
 }
 
 struct dev_caps_replace_rule {
@@ -167,7 +172,8 @@ static_assert(std::is_same<CHAR, dev_caps_char_type<MIDIINCAPSA>>::value, "error
 static_assert(std::is_same<WCHAR, dev_caps_char_type<MIDIOUTCAPSW>>::value, "error");
 static_assert(std::is_same<CHAR, dev_caps_char_type<MIDIOUTCAPSA>>::value, "error");
 
-std::vector<dev_caps_replace_rule> g_replace_rules;
+std::vector<dev_caps_replace_rule> g_dev_caps_replace_rules;
+std::vector<drv_query_replace_rule> g_drv_query_replace_rules;
 FILE* g_maybe_wrapper_log_file = NULL;
 
 template<typename ...Args>
@@ -314,7 +320,7 @@ bool load_config(
 						throw std::runtime_error("No replace items set for rule, would not affect anything.");
 					}
 
-					g_replace_rules.push_back(rval);
+					g_dev_caps_replace_rules.push_back(rval);
 				}
 				catch (std::exception& e) {
 					log << "Skipping rule:\n" << e.what() << "\n";
@@ -400,7 +406,7 @@ void configure() {
 			wrapper_log(&pre_popup_log, "%s", config_log.str().c_str());
 		}
 
-		wrapper_log(&pre_popup_log, "Starting MIDI replace with %d rules.\n", g_replace_rules.size());
+		wrapper_log(&pre_popup_log, "Starting MIDI replace with %d rules.\n", g_dev_caps_replace_rules.size());
 	}
 	catch (std::exception &e) {
 		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: %s\n", e.what());
@@ -434,7 +440,7 @@ void configure() {
 		else {
 			msg += "Config not found!\n";
 		}
-		msg += "# of rules loaded: " + std::to_string(g_replace_rules.size()) + "\n";
+		msg += "# of rules loaded: " + std::to_string(g_dev_caps_replace_rules.size()) + "\n";
 
 		if (debug_popup_verbose) {
 			msg += "Detailed log (desable by setting \"popup_verbose\" to false in the config):\n";
@@ -477,7 +483,7 @@ BOOL DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID fImpLoad) {
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsA(deviceId, pmoc, cpmoc);
 	wrapper_log(nullptr, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
-	for (auto const& rule : g_replace_rules) {
+	for (auto const& rule : g_dev_caps_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
 			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
@@ -488,7 +494,7 @@ MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pm
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsW(UINT_PTR deviceId, LPMIDIOUTCAPSW pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsW(deviceId, pmoc, cpmoc);
 	wrapper_log(nullptr, "\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
-	for (auto const& rule : g_replace_rules) {
+	for (auto const& rule : g_dev_caps_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
 			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
@@ -499,7 +505,7 @@ MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsW(UINT_PTR deviceId, LPMIDIOUTCAPSW pm
 MMRESULT WINAPI OVERRIDE_midiInGetDevCapsA(UINT_PTR deviceId, LPMIDIINCAPSA pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiInGetDevCapsA(deviceId, pmoc, cpmoc);
 	wrapper_log(nullptr, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
-	for (auto const& rule : g_replace_rules) {
+	for (auto const& rule : g_dev_caps_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
 			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
@@ -510,7 +516,7 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsA(UINT_PTR deviceId, LPMIDIINCAPSA pmoc
 MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiInGetDevCapsW(deviceId, pmoc, cpmoc);
 	wrapper_log(nullptr, "\nRequest for input device capabilities: %s\n", stringify_caps(*pmoc).c_str());
-	for (auto const& rule : g_replace_rules) {
+	for (auto const& rule : g_dev_caps_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
 			wrapper_log(nullptr, "--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
 		}
@@ -523,11 +529,28 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	ULONG sz;
 	MMRESULT rval;
 	rval = devDirection == Direction::Input ?
-		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, &sz, dw2) :
-		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, &sz, dw2);
+		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), nullptr) :
+		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), nullptr);
 	wrapper_log(nullptr, "Queried device interface size for "
 	                     + (devDirection == Direction::Input ? "input" : "output")
 						 + ". Native result: %d\n", sz);
+	wchar_t* cache_name = (wchar_t*) malloc(sz);
+	if (devDirection == Direction::Input) {
+		rval = MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACE, reinterpret_cast<DWORD_PTR>(cache_name), sz);
+	} else {
+		rval = MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACE, reinterpret_cast<DWORD_PTR>(cache_name), sz);
+	}
+	wrapper_log(nullptr, "--> Transparently queried the device interface with result: %ls", cache_name);
+	for (auto &rule : g_drv_query_replace_rules) {
+		if (rule.is_match(devDirection, cache_name)) {
+			int size = sizeof(wchar_t) * rule.replace_interface_name.size() + 1;
+			wrapper_log(nullptr, "--> Matched a replace rule. Returning size %d of: %ls\n", size, rule.replace_interface_name.c_str());
+			auto *ptr = reinterpret_cast<ULONG*>(dw1);
+			*dw1 = size;
+			break;
+		}
+	}
+	free(cache_name);
 	return rval;
 }
 
@@ -540,6 +563,7 @@ MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, hm hm, DWORD_PTR dw
 	wrapper_log(nullptr, "Queried device interface name for "
 	                     + (devDirection == Direction::Input ? "input" : "output")
 						 + ". Native result: %ls\n", dw1);
+	std::wstring cache_name(reinterpret_cast<wchar_t*>(dw1));
 	return rval;
 }
 
