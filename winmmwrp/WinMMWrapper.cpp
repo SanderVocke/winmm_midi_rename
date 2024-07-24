@@ -542,7 +542,7 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	}
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
-		int new_sz = sizeof(wchar_t) * maybe_substitute.size() + 1;
+		int new_sz = sizeof(wchar_t) * maybe_substitute.value().size() + 1;
 		wrapper_log(nullptr, "--> Matched a replace rule. Returning size %d of: %ls\n", new_sz, maybe_substitute.value().c_str());
 		auto *ptr = reinterpret_cast<ULONG*>(dw1);
 		out_size = new_sz;
