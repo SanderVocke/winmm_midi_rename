@@ -81,7 +81,13 @@ midi_dev_caps to_our_dev_caps(dev_caps_struct v) {
 	return rval;
 }
 
-struct replace_rule {
+struct drv_query_replace_rule {
+	std::optional<Direction> maybe_match_direction;
+	std::wregex match_interface_name;
+	std::wstring replace_interface_name;
+}
+
+struct dev_caps_replace_rule {
 	// Matching only on common properties
 	std::optional<Direction> maybe_match_direction;
 	std::optional<std::regex> maybe_match_name;
@@ -161,7 +167,7 @@ static_assert(std::is_same<CHAR, dev_caps_char_type<MIDIINCAPSA>>::value, "error
 static_assert(std::is_same<WCHAR, dev_caps_char_type<MIDIOUTCAPSW>>::value, "error");
 static_assert(std::is_same<CHAR, dev_caps_char_type<MIDIOUTCAPSA>>::value, "error");
 
-std::vector<replace_rule> g_replace_rules;
+std::vector<dev_caps_replace_rule> g_replace_rules;
 FILE* g_maybe_wrapper_log_file = NULL;
 
 template<typename ...Args>
@@ -273,7 +279,7 @@ bool load_config(
 			auto& rules = data["rules"];
 			for (auto& rule : rules) {
 				try {
-					replace_rule rval;
+					dev_caps_replace_rule rval;
 					if (rule.contains("match_name")) { rval.maybe_match_name = rule["match_name"].template get<std::string>(); }
 					if (rule.contains("match_man_id")) { rval.maybe_match_man_id = rule["match_man_id"].template get<size_t>(); }
 					if (rule.contains("match_prod_id")) { rval.maybe_match_prod_id = rule["match_prod_id"].template get<size_t>(); }
@@ -512,8 +518,8 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc
 	return rval;
 }
 
-template<typename hm>
-MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, hm hm, DWORD_PTR dw1, DWORD_PTR dw2) {
+template<typename HM>
+MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PTR dw1, DWORD_PTR dw2) {
 	ULONG sz;
 	MMRESULT rval;
 	rval = devDirection == Direction::Input ?
