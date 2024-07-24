@@ -591,9 +591,9 @@ MMRESULT WINAPI OVERRIDE_WINMM_midiOutMessage(
 ) {
 	switch (uMsg) {
 		case DRV_QUERYDEVICEINTERFACESIZE:
-			return handle_QUERYDEVICEINTERFACESIZE<LPMIDIOUTCAPSA>(Direction::Output, hmo, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACESIZE<LPMIDIOUTCAPSA, HMIDIOUT>(Direction::Output, hmo, dw1, dw2);
 		case DRV_QUERYDEVICEINTERFACE:
-			return handle_QUERYDEVICEINTERFACE<LPMIDIOUTCAPSA>(Direction::Output, hmo, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACE<LPMIDIOUTCAPSA, HMIDIOUT>(Direction::Output, hmo, dw1, dw2);
 		default:
 			return MMmidiOutMessage(hmo, uMsg, dw1, dw2);
 	};
@@ -607,9 +607,9 @@ MMRESULT WINAPI OVERRIDE_WINMM_midiInMessage(
 ) {
 	switch (uMsg) {
 		case DRV_QUERYDEVICEINTERFACESIZE:
-			return handle_QUERYDEVICEINTERFACESIZE<LPMIDIINCAPSA>(Direction::Input, hmi, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACESIZE<LPMIDIINCAPSA, HMIDIIN>(Direction::Input, hmi, dw1, dw2);
 		case DRV_QUERYDEVICEINTERFACE:
-			return handle_QUERYDEVICEINTERFACE<LPMIDIINCAPSA>(Direction::Input, hmi, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACE<LPMIDIINCAPSA, HMIDIIN>(Direction::Input, hmi, dw1, dw2);
 		default:
 			return MMmidiInMessage(hmi, uMsg, dw1, dw2);
 	};
