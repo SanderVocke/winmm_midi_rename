@@ -532,9 +532,8 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	rval = devDirection == Direction::Input ?
 		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), nullptr) :
 		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), nullptr);
-	wrapper_log(nullptr, "Queried device interface size for "
-	                     + (devDirection == Direction::Input ? "input" : "output")
-						 + ". Native result: %d\n", sz);
+	wrapper_log(nullptr, "Queried device interface size for %s. Native result: %d\n",
+	                     (devDirection == Direction::Input ? "input" : "output"), sz);
 	wchar_t* cache_name = (wchar_t*) malloc(sz);
 	if (devDirection == Direction::Input) {
 		rval = MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACE, reinterpret_cast<DWORD_PTR>(cache_name), sz);
@@ -555,15 +554,14 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	return rval;
 }
 
-template<typename hm>
-MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, hm hm, DWORD_PTR dw1, DWORD_PTR dw2) {
+template<typename HM>
+MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, HM hm, DWORD_PTR dw1, DWORD_PTR dw2) {
 	MMRESULT rval;
 	rval = devDirection == Direction::Input ?
 		MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2) :
 		MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2);
-	wrapper_log(nullptr, "Queried device interface name for "
-	                     + (devDirection == Direction::Input ? "input" : "output")
-						 + ". Native result: %ls\n", dw1);
+	wrapper_log(nullptr, "Queried device interface name for %s. Native result: %ls\n",
+	                     (devDirection == Direction::Input ? "input" : "output"), dw1);
 	std::wstring cache_name(reinterpret_cast<wchar_t*>(dw1));
 	for (auto &rule : g_drv_query_replace_rules) {
 		if (rule.is_match(devDirection, cache_name)) {
