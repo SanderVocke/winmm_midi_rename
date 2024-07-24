@@ -399,7 +399,7 @@ void configure() {
 			wrapper_log(&pre_popup_log, "%s", config_log.str().c_str());
 		}
 
-		wrapper_log(&pre_popup_log, "Starting MIDI replace with %d device cap rules and %d driver device interface rules.\n", g_replace_rules.size(), g_drv_query_replace_rules.size());
+		wrapper_log(&pre_popup_log, "Starting MIDI replace with %d replace rules.\n", g_replace_rules.size());
 	}
 	catch (std::exception &e) {
 		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: %s\n", e.what());
@@ -517,7 +517,7 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc
 	return rval;
 }
 
-template<typename HM>
+template<typename CAPS, typename HM>
 MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PTR dw1, DWORD_PTR dw2) {
 	ULONG sz;
 	MMRESULT rval;
@@ -527,14 +527,14 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	wrapper_log(nullptr, "Queried device interface size for %s. Native result: %d\n",
 	                     (devDirection == Direction::Input ? "input" : "output"), sz);
 	std::optional<std::wstring> maybe_substitute;
-	LPMIDICAPSA pmoc;
+	CAPS pmoc;
 	if (devDirection == Direction::Input) {
 		MMMidiInGetDevCapsA((UINT_PTR)hm, pmoc, 0);
 	} else {
 		MMMidiOutGetDevCapsA((UINT_PTR)hm, pmoc, 0);
 	}
 	wrapper_log(nullptr, "--> Transparently queried the device interface with result: %s", pmoc->szPname);
-	for (auto &rule : g_drv_query_replace_rules) {
+	for (auto &rule : g_replace_rules) {
 		if (rule.is_match(devDirection, *pmoc)) {
 			maybe_substitute = rule.replace_interface_name;
 			break;
@@ -542,7 +542,7 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	}
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
-		int new_sz = sizeof(wchar_t) * rule.replace_interface_name.size() + 1;
+		int new_sz = sizeof(wchar_t) * maybe_substitute.size() + 1;
 		wrapper_log(nullptr, "--> Matched a replace rule. Returning size %d of: %ls\n", new_sz, maybe_substitute.value().c_str());
 		auto *ptr = reinterpret_cast<ULONG*>(dw1);
 		out_size = new_sz;
@@ -553,7 +553,7 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	return rval;
 }
 
-template<typename HM>
+template<typename CAPS, typename HM>
 MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, HM hm, DWORD_PTR dw1, DWORD_PTR dw2) {
 	MMRESULT rval;
 	rval = devDirection == Direction::Input ?
@@ -562,14 +562,14 @@ MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, HM hm, DWORD_PTR dw
 	wrapper_log(nullptr, "Queried device interface name for %s. Native result: %ls\n",
 	                     (devDirection == Direction::Input ? "input" : "output"), dw1);
 	std::optional<std::wstring> maybe_substitute;
-	LPMIDICAPSA pmoc;
+	CAPS pmoc;
 	if (devDirection == Direction::Input) {
 		MMMidiInGetDevCapsA((UINT_PTR)hm, pmoc, 0);
 	} else {
 		MMMidiOutGetDevCapsA((UINT_PTR)hm, pmoc, 0);
 	}
 	wrapper_log(nullptr, "--> Transparently queried the device interface with result: %s", pmoc->szPname);
-	for (auto &rule : g_drv_query_replace_rules) {
+	for (auto &rule : g_replace_rules) {
 		if (rule.is_match(devDirection, *pmoc)) {
 			maybe_substitute = rule.replace_interface_name;
 			break;
@@ -591,9 +591,9 @@ MMRESULT WINAPI OVERRIDE_WINMM_midiOutMessage(
 ) {
 	switch (uMsg) {
 		case DRV_QUERYDEVICEINTERFACESIZE:
-			return handle_QUERYDEVICEINTERFACESIZE(Direction::Output, hmo, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACESIZE<LPMIDIOUTCAPSA>(Direction::Output, hmo, dw1, dw2);
 		case DRV_QUERYDEVICEINTERFACE:
-			return handle_QUERYDEVICEINTERFACE(Direction::Output, hmo, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACE<LPMIDIOUTCAPSA>(Direction::Output, hmo, dw1, dw2);
 		default:
 			return MMmidiOutMessage(hmo, uMsg, dw1, dw2);
 	};
@@ -607,9 +607,9 @@ MMRESULT WINAPI OVERRIDE_WINMM_midiInMessage(
 ) {
 	switch (uMsg) {
 		case DRV_QUERYDEVICEINTERFACESIZE:
-			return handle_QUERYDEVICEINTERFACESIZE(Direction::Input, hmi, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACESIZE<LPMIDIINCAPSA>(Direction::Input, hmi, dw1, dw2);
 		case DRV_QUERYDEVICEINTERFACE:
-			return handle_QUERYDEVICEINTERFACE(Direction::Input, hmi, dw1, dw2);
+			return handle_QUERYDEVICEINTERFACE<LPMIDIINCAPSA>(Direction::Input, hmi, dw1, dw2);
 		default:
 			return MMmidiInMessage(hmi, uMsg, dw1, dw2);
 	};
