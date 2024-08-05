@@ -120,7 +120,7 @@ struct replace_rule {
 
 	bool is_match(midi_dev_caps const& m) const {
 		bool rval = true;
-		std::smatch rmatch;
+		std::wsmatch rmatch;
 		if (maybe_match_direction.has_value()) { rval = rval && (maybe_match_direction.value() == m.direction); }
 		if (maybe_match_name.has_value()) { rval = rval && std::regex_match(m.name, rmatch, maybe_match_name.value()); }
 		if (maybe_match_man_id.has_value()) { rval = rval && (maybe_match_man_id.value() == m.man_id); }
