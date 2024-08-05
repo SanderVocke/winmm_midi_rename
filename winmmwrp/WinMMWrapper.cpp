@@ -189,7 +189,7 @@ inline void wrapper_log(std::wostringstream* maybe_os, Args... args) {
 		fwprintf(g_maybe_wrapper_log_file, args...);
 	}
 	if (maybe_os) {
-		auto n_needed = snprintf(logbuf.data(), 0, args...);
+		auto n_needed = swprintf(logbuf.data(), 0, args...);
 		if (n_needed >= logbuf.size()) { logbuf.resize(n_needed+1); }
 		swprintf(logbuf.data(), logbuf.size(), args...);
 		(*maybe_os) << logbuf.data();
@@ -394,7 +394,7 @@ void configure() {
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
 			std::string value {maybe_env};
 			wrapper_log(&pre_popup_log, L"Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
-			            maybe_logfilename.value_or(std::wstring(L"none")).c_str(), value);
+			            stringToWstring(maybe_logfilename.value_or(std::string("none"))).c_str(), value);
 			maybe_logfilename = value;
 		}
 
