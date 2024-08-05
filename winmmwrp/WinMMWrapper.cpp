@@ -97,13 +97,13 @@ midi_dev_caps to_our_dev_caps(dev_caps_struct v) {
 struct replace_rule {
 	// Matching only on common properties
 	std::optional<Direction> maybe_match_direction;
-	std::optional<std::regex> maybe_match_name;
+	std::optional<std::wregex> maybe_match_name;
 	std::optional<size_t> maybe_match_man_id;
 	std::optional<size_t> maybe_match_prod_id;
 	std::optional<size_t> maybe_match_driver_version;
 
 	// Replacing common properties
-	std::optional <std::string> maybe_replace_name;
+	std::optional <std::wstring> maybe_replace_name;
 	std::optional <size_t> maybe_replace_man_id;
 	std::optional <size_t> maybe_replace_prod_id;
 	std::optional <size_t> maybe_replace_driver_version;
@@ -290,7 +290,7 @@ bool load_config(
 			for (auto& rule : rules) {
 				try {
 					replace_rule rval;
-					if (rule.contains("match_name")) { rval.maybe_match_name = rule["match_name"].template get<std::string>(); }
+					if (rule.contains("match_name")) { rval.maybe_match_name = rule["match_name"].template get<std::wstring>(); }
 					if (rule.contains("match_man_id")) { rval.maybe_match_man_id = rule["match_man_id"].template get<size_t>(); }
 					if (rule.contains("match_prod_id")) { rval.maybe_match_prod_id = rule["match_prod_id"].template get<size_t>(); }
 					if (rule.contains("match_driver_version")) { rval.maybe_match_driver_version = rule["match_driver_version"].template get<size_t>(); }
@@ -302,7 +302,7 @@ bool load_config(
 							throw std::runtime_error("Invalid value for match_direction (should be in or out): " + text);
 						}
 					}
-					if (rule.contains("replace_name")) { rval.maybe_replace_name = rule["replace_name"].template get<std::string>(); }
+					if (rule.contains("replace_name")) { rval.maybe_replace_name = rule["replace_name"].template get<std::wstring>(); }
 					if (rule.contains("replace_man_id")) { rval.maybe_replace_man_id = rule["replace_man_id"].template get<size_t>(); }
 					if (rule.contains("replace_prod_id")) { rval.maybe_replace_prod_id = rule["replace_prod_id"].template get<size_t>(); }
 					if (rule.contains("replace_driver_version")) { rval.maybe_replace_driver_version = rule["replace_driver_version"].template get<size_t>(); }
