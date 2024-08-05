@@ -303,7 +303,7 @@ bool load_config(
 							throw std::runtime_error("Invalid value for match_direction (should be in or out): " + wstringToString(text));
 						}
 					}
-					if (rule.contains("replace_name")) { rval.maybe_replace_name = stringToWstring(["replace_name"].template get<std::string>()); }
+					if (rule.contains("replace_name")) { rval.maybe_replace_name = stringToWstring(rule["replace_name"].template get<std::string>()); }
 					if (rule.contains("replace_man_id")) { rval.maybe_replace_man_id = rule["replace_man_id"].template get<size_t>(); }
 					if (rule.contains("replace_prod_id")) { rval.maybe_replace_prod_id = rule["replace_prod_id"].template get<size_t>(); }
 					if (rule.contains("replace_driver_version")) { rval.maybe_replace_driver_version = rule["replace_driver_version"].template get<size_t>(); }
@@ -312,7 +312,7 @@ bool load_config(
 					if (rule.contains("replace_notes")) { rval.maybe_replace_notes = rule["replace_notes"].template get<size_t>(); }
 					if (rule.contains("replace_channel_mask")) { rval.maybe_replace_channel_mask = rule["replace_channel_mask"].template get<size_t>(); }
 					if (rule.contains("replace_support")) { rval.maybe_replace_support = rule["replace_support"].template get<size_t>(); }
-					if (rule.contains("replace_interface_name")) { rval.maybe_replace_interface_name = stringToWstring(["replace_interface_name"].template get<std::string>()); }
+					if (rule.contains("replace_interface_name")) { rval.maybe_replace_interface_name = stringToWstring(rule["replace_interface_name"].template get<std::string>()); }
 
 					if (!rval.maybe_replace_name.has_value() &&
 						!rval.maybe_replace_driver_version.has_value() &&
