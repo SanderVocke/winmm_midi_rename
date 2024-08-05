@@ -181,16 +181,16 @@ std::vector<replace_rule> g_replace_rules;
 FILE* g_maybe_wrapper_log_file = NULL;
 
 template<typename ...Args>
-inline void wrapper_log(std::ostringstream* maybe_os, Args... args) {
-	std::vector<char> logbuf(1024);
+inline void wrapper_log(std::wostringstream* maybe_os, Args... args) {
+	std::vector<wchar_t> logbuf(1024);
 
 	if (g_maybe_wrapper_log_file) {
-		fprintf(g_maybe_wrapper_log_file, args...);
+		fwprintf(g_maybe_wrapper_log_file, args...);
 	}
 	if (maybe_os) {
 		auto n_needed = snprintf(logbuf.data(), 0, args...);
 		if (n_needed >= logbuf.size()) { logbuf.resize(n_needed+1); }
-		snprintf(logbuf.data(), logbuf.size(), args...);
+		swprintf(logbuf.data(), logbuf.size(), args...);
 		(*maybe_os) << logbuf.data();
 	}
 }
@@ -229,21 +229,20 @@ std::wstring stringify_caps(dev_caps_struct const& s) {
 	}
 }
 
-std::string abs_path_of(FILE* file) {
+std::wstring abs_path_of(FILE* file) {
 	char file_name_info[MAX_PATH + sizeof(DWORD)];
 	if (GetFileInformationByHandleEx((HANDLE)_get_osfhandle(fileno(file)),
 		FileNameInfo,
 		(void*)file_name_info,
 		sizeof(file_name_info))) {
 		auto _info = (FILE_NAME_INFO*)file_name_info;
-		std::wstring name(_info->FileName);
-		return std::string(name.begin(), name.end());
+		return std::wstring(_info->FileName);
 	}
 	throw std::runtime_error("Unable to get filename from descriptor");
 }
 
-std::string read_whole_file(std::string filename, std::string* maybe_abs_path_out) {
-	FILE* f = fopen(filename.c_str(), "rb");
+std::wstring read_whole_file(std::wstring filename, std::wstring* maybe_abs_path_out) {
+	FILE* f = wfopen(filename.c_str(), "rb");
 	if (!f) {
 		throw std::runtime_error("Unable to open for reading: " + filename);
 	}
@@ -254,7 +253,7 @@ std::string read_whole_file(std::string filename, std::string* maybe_abs_path_ou
 	long fsize = ftell(f);
 	fseek(f, 0, SEEK_SET);  /* same as rewind(f); */
 
-	char* string = (char*)malloc(fsize + 1);
+	wchar_t* string = (char*)malloc(fsize + 1);
 	if (!string) {
 		throw std::runtime_error("Unable to alloc");
 	}
@@ -262,27 +261,27 @@ std::string read_whole_file(std::string filename, std::string* maybe_abs_path_ou
 	fclose(f);
 
 	string[fsize] = 0;
-	return std::string(string);
+	return std::wstring(string);
 }
 
 
 bool load_config(
-	std::string filename,
-	std::optional<std::string> &out_log_filename,
-	std::optional<std::string> &out_config_abspath,
+	std::wstring filename,
+	std::optional<std::wstring> &out_log_filename,
+	std::optional<std::wstring> &out_config_abspath,
 	bool &out_debug_popup,
 	bool &out_debug_popup_verbose,
-	std::ostream &log) {
+	std::wostream &log) {
 	try {
-		log << "Loading config from " << filename << "\n";
+		log << L"Loading config from " << filename << L"\n";
 
-		std::string abspath;
+		std::wstring abspath;
 		auto config_content = read_whole_file(filename, &abspath);
 		out_config_abspath = abspath;
 		json data = json::parse(config_content);
-		log << "Parsed config: " << data.dump() << "\n";
+		log << L"Parsed config: " << data.dump() << L"\n";
 
-		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); log << "LOG " << out_log_filename.value_or("no") << std::endl; }
+		if (data.contains("log")) { out_log_filename = data["log"].template get <std::wstring>(); log << L"LOG " << out_log_filename.value_or("no") << std::endl; }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
 		if (data.contains("popup_verbose")) { out_debug_popup_verbose = data["popup_verbose"].template get <bool>(); }
 		if (data.contains("rules")) {
@@ -295,7 +294,7 @@ bool load_config(
 					if (rule.contains("match_prod_id")) { rval.maybe_match_prod_id = rule["match_prod_id"].template get<size_t>(); }
 					if (rule.contains("match_driver_version")) { rval.maybe_match_driver_version = rule["match_driver_version"].template get<size_t>(); }
 					if (rule.contains("match_direction")) {
-						auto text = rule["match_direction"].template get<std::string>();
+						auto text = rule["match_direction"].template get<std::wstring>();
 						if (text == "in") { rval.maybe_match_direction = Direction::Input; }
 						else if (text == "out") { rval.maybe_match_direction = Direction::Output; }
 						else {
@@ -328,42 +327,41 @@ bool load_config(
 					g_replace_rules.push_back(rval);
 				}
 				catch (std::exception& e) {
-					log << "Skipping rule:\n" << e.what() << "\n";
+					log << L"Skipping rule:\n" << e.what() << "\n";
 				}
 				catch (...) {
-					log << "Skipping rule (unknown exception)\n";
+					log << L"Skipping rule (unknown exception)\n";
 				}
 			}
 		}
 	}
 	catch (std::exception& e) {
-		log << "Unable to load config from " << filename << ".Continuing without replace rules.Exception:\n" << e.what() << "\n";
+		log << L"Unable to load config from " << filename << L".Continuing without replace rules.Exception:\n" << e.what() << L"\n";
 		return false;
 	}
 	catch (...) {
-		log << "Unable to load config from " << filename << ".Continuing without replace rules. (unknown exception)\n";
+		log << L"Unable to load config from " << filename << L".Continuing without replace rules. (unknown exception)\n";
 		return false;
 	}
 	return true;
 }
 
-std::string last_error_string()
+std::wstring last_error_string()
 {
 	//Get the error message ID, if any.
 	DWORD errorMessageID = ::GetLastError();
 	if (errorMessageID == 0) {
-		return std::string(); //No error message has been recorded
+		return std::wstring(); //No error message has been recorded
 	}
 
-	LPSTR messageBuffer = nullptr;
+	LPWSTR messageBuffer = nullptr;
 
 	//Ask Win32 to give us the string version of that message ID.
 	//The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
-	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+	size_t size = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, NULL);
 
-	//Copy the error message into a std::string.
-	std::string message(messageBuffer, size);
+	std::wstring message(messageBuffer, size);
 
 	//Free the Win32's string's buffer.
 	LocalFree(messageBuffer);
@@ -373,19 +371,19 @@ std::string last_error_string()
 
 void configure() {
 	char* maybe_env;
-	std::string try_config_file = "midi_rename_config.json";
+	std::wstring try_config_file = L"midi_rename_config.json";
 	bool success = true;
 	bool debug_popup = true;
 	bool debug_popup_verbose = false;
-	std::optional<std::string> maybe_logfilename, maybe_configabspath;
-	std::ostringstream config_log;
-	std::ostringstream pre_popup_log;
+	std::optional<std::wstring> maybe_logfilename, maybe_configabspath;
+	std::wostringstream config_log;
+	std::wostringstream pre_popup_log;
 
 	try {
 		// Config file
-		char default_file_path[MAX_PATH];
 		if ((maybe_env = getenv("MIDI_REPLACE_CONFIGFILE")) != NULL) {
-			try_config_file = std::string(maybe_env);
+			auto _try_config_file = std::string(maybe_env);
+			try_config_file = stringToWstring(_try_config_file);
 		}
 		if (try_config_file.length() > 0) {
 			success = success && load_config(try_config_file, maybe_logfilename, maybe_configabspath, debug_popup, debug_popup_verbose, config_log);
@@ -393,70 +391,71 @@ void configure() {
 
 		// Log filename override
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
-			std::string value {maybe_env};
-			wrapper_log(&pre_popup_log, "Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
-			            maybe_logfilename.value_or(std::string("none")).c_str(), value);
+			std::string _value {maybe_env};
+			std::wstring value = stringToWstring(_value);
+			wrapper_log(&pre_popup_log, L"Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
+			            maybe_logfilename.value_or(std::wstring("none")).c_str(), value);
 			maybe_logfilename = value;
 		}
 
 		// Open the logfile for writing
 		if (maybe_logfilename.has_value()) {
-		    wrapper_log(&pre_popup_log, "Opening log file: %s\n", maybe_logfilename.value().c_str());
-			g_maybe_wrapper_log_file = fopen(maybe_logfilename.value().c_str(), "w");
+		    wrapper_log(&pre_popup_log, L"Opening log file: %s\n", maybe_logfilename.value().c_str());
+			g_maybe_wrapper_log_file = wfopen(maybe_logfilename.value().c_str(), "w");
 			if (!g_maybe_wrapper_log_file) {
-				wrapper_log(&pre_popup_log, "Error: Unable to open log file (%s)!\n", strerror(errno));
+				wrapper_log(&pre_popup_log, L"Error: Unable to open log file (%s)!\n", strerror(errno));
 			}
 
 			// Write our log msgs from loading the config
 			wrapper_log(&pre_popup_log, "%s", config_log.str().c_str());
 		}
 
-		wrapper_log(&pre_popup_log, "Starting MIDI replace with %d replace rules.\n", g_replace_rules.size());
+		wrapper_log(&pre_popup_log, L"Starting MIDI replace with %d replace rules.\n", g_replace_rules.size());
 	}
 	catch (std::exception &e) {
-		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: %s\n", e.what());
+		wrapper_log(&pre_popup_log, L"Failed to start MIDI replace: %s\n", e.what());
 		success = false;
 	}
 	catch (...) {
-		wrapper_log(&pre_popup_log, "Failed to start MIDI replace: unknown exception\n");
+		wrapper_log(&pre_popup_log, L"Failed to start MIDI replace: unknown exception\n");
 		success = false;
 	}
 
 	if (debug_popup) {
-		std::string msg = success ?
-			"MIDI device renamer started successfully.\n" :
-			"MIDI device renamer failed to initialize.\n";
+		std::wstring msg = success ?
+			L"MIDI device renamer started successfully.\n" :
+			L"MIDI device renamer failed to initialize.\n";
 
 		if (!success) {
-			msg += config_log.str() + "\n";
+			msg += config_log.str() + L"\n";
 		}
 
 		if (g_maybe_wrapper_log_file) {
-			msg += "Logging to: " + abs_path_of(g_maybe_wrapper_log_file) + "\n";
+			msg += L"Logging to: " + abs_path_of(g_maybe_wrapper_log_file) + L"\n";
 		}
 		else {
-			msg += "No log file specified.\n";
+			msg += L"No log file specified.\n";
 		}
 
-		msg += "Config search path: " + try_config_file + "\n";
+		msg += L"Config search path: " + try_config_file + L"\n";
 		if (maybe_configabspath.has_value()) {
-			msg += "Config found @: " + maybe_configabspath.value() + "\n";
+			msg += L"Config found @: " + maybe_configabspath.value() + L"\n";
 		}
 		else {
-			msg += "Config not found!\n";
+			msg += L"Config not found!\n";
 		}
-		msg += "# of rules loaded: " + std::to_string(g_replace_rules.size()) + "\n";
+		msg += L"# of rules loaded: " + std::to_wstring(g_replace_rules.size()) + L"\n";
 
 		if (debug_popup_verbose) {
-			msg += "Detailed log (desable by setting \"popup_verbose\" to false in the config):\n";
+			msg += L"Detailed log (desable by setting \"popup_verbose\" to false in the config):\n";
 			msg += pre_popup_log.str();
 		} else {
-			msg += "To include detailed log info up to this point into the popup, set \"popup_verbose\" to true in the config.\n";
+			msg += L"To include detailed log info up to this point into the popup, set \"popup_verbose\" to true in the config.\n";
 		}
 
-		msg += "To disable this popup, set \"popup\" to false in the config.\n";
+		msg += L"To disable this popup, set \"popup\" to false in the config.\n";
 
-		MessageBoxA(NULL, msg.c_str(), "Info", 0);
+		MessageBoxW(NULL, msg.c_str(), L"Info", 0);
 	}
 }
 
