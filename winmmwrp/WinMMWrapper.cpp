@@ -14,7 +14,6 @@
 #include <cwchar>
 
 #include <nlohmann/json.hpp>
-
 using json = nlohmann::json;
 
 // Stock WinMM funcs
@@ -69,7 +68,6 @@ template<typename char_t>
 std::wstring chars_to_str(char_t* c) {
 	if (std::is_same<char_t, WCHAR>::value) {
 		return std::wstring((WCHAR*)c);
-		return std::string(w.begin(), w.end());
 	}
 	return stringToWstring(std::string((CHAR*)c));
 }
