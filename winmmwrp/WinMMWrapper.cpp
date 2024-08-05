@@ -198,20 +198,20 @@ inline void wrapper_log(std::ostringstream* maybe_os, Args... args) {
 template<typename dev_caps_struct>
 std::wstring stringify_common_caps(dev_caps_struct const& s) {
 	return
-		"  name: " + chars_to_str((dev_caps_char_type<dev_caps_struct> *)s.szPname) + "\n" +
-		"  man id: " + std::to_wstring(s.wMid) + "\n" +
-		"  prod id: " + std::to_wstring(s.wPid) + "\n" +
-		"  driver version: " + std::to_wstring(s.vDriverVersion) + "\n";
+		L"  name: " + chars_to_str((dev_caps_char_type<dev_caps_struct> *)s.szPname) + L"\n" +
+		L"  man id: " + std::to_wstring(s.wMid) + L"\n" +
+		L"  prod id: " + std::to_wstring(s.wPid) + L"\n" +
+		L"  driver version: " + std::to_wstring(s.vDriverVersion) + L"\n";
 }
 
 template<typename out_dev_caps_struct>
 std::wstring stringify_output_caps(out_dev_caps_struct const& s) {
 	return stringify_common_caps(s) +
-	       "  technology: " + std::to_wstring(s.wTechnology) + "\n" +
-		   "  voices: " + std::to_wstring(s.wVoices) + "\n" +
-	       "  notes: " + std::to_wstring(s.wNotes) + "\n" +
-	       "  channel mask: " + std::to_wstring(s.wChannelMask) + "\n" +
-	       "  support: " + std::to_wstring(s.dwSupport) + "\n";
+	       L"  technology: " + std::to_wstring(s.wTechnology) + L"\n" +
+		   L"  voices: " + std::to_wstring(s.wVoices) + L"\n" +
+	       L"  notes: " + std::to_wstring(s.wNotes) + L"\n" +
+	       L"  channel mask: " + std::to_wstring(s.wChannelMask) + L"\n" +
+	       L"  support: " + std::to_wstring(s.dwSupport) + L"\n";
 }
 
 template<typename in_dev_caps_struct>
