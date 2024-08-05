@@ -11,8 +11,10 @@
 #include <io.h>
 #include <regex>
 #include <mmddk.h>
+#include <cwchar>
 
 #include <nlohmann/json.hpp>
+
 using json = nlohmann::json;
 
 // Stock WinMM funcs
@@ -24,6 +26,18 @@ enum class Direction {
 	Input,
 	Output
 };
+
+std::wstring stringToWstring(const std::string& str) {
+    std::vector<wchar_t> buffer(str.size() + 1);
+    std::mbstowcs(buffer.data(), str.c_str(), str.size() + 1);
+    return std::wstring(buffer.data());
+}
+
+std::string wstringToString(const std::wstring& wstr) {
+    std::vector<char> buffer(wstr.size() * MB_CUR_MAX + 1);
+    std::wcstombs(buffer.data(), wstr.c_str(), buffer.size());
+    return std::string(buffer.data());
+}
 
 template<typename dev_caps_struct>
 consteval Direction CapsDirection() {
@@ -38,7 +52,7 @@ struct midi_dev_caps {
 	size_t man_id;										// wMid
 	size_t prod_id;										// wPid
 	size_t driver_version;								// vDriverVersion
-	std::string name;									// szPname
+	std::wstring name;									// szPname
 
 	// MIDIOUTCAPS only
 	std::optional<size_t> technology;					// wTechnology
@@ -52,12 +66,12 @@ template<typename dev_caps_struct>
 using dev_caps_char_type = typename std::remove_all_extents<decltype(dev_caps_struct::szPname)>::type;
 
 template<typename char_t>
-std::string chars_to_str(char_t* c) {
+std::wstring chars_to_str(char_t* c) {
 	if (std::is_same<char_t, WCHAR>::value) {
-		std::wstring w((WCHAR*)c);
+		return std::wstring((WCHAR*)c);
 		return std::string(w.begin(), w.end());
 	}
-	return std::string((CHAR*)c);
+	return stringToWstring(std::string((CHAR*)c));
 }
 
 template<typename dev_caps_struct>
@@ -142,9 +156,9 @@ struct replace_rule {
 			s.wPid = ours.prod_id;
 			s.vDriverVersion = ours.driver_version;
 			if (std::is_same<dev_caps_char_type<dev_caps_struct>, WCHAR>::value) {
-				wcscpy((WCHAR*)s.szPname, std::wstring(ours.name.begin(), ours.name.end()).c_str());
+				wcscpy((WCHAR*)s.szPname, ours.name.c_str());
 			} else {
-				strcpy((CHAR*)s.szPname, ours.name.c_str());
+				strcpy((CHAR*)s.szPname, wstringToString(ours.name).c_str());
 			}
 
 			if constexpr (CapsDirection<dev_caps_struct>() == Direction::Output) {
@@ -184,31 +198,31 @@ inline void wrapper_log(std::ostringstream* maybe_os, Args... args) {
 }
 
 template<typename dev_caps_struct>
-std::string stringify_common_caps(dev_caps_struct const& s) {
+std::wstring stringify_common_caps(dev_caps_struct const& s) {
 	return
 		"  name: " + chars_to_str((dev_caps_char_type<dev_caps_struct> *)s.szPname) + "\n" +
-		"  man id: " + std::to_string(s.wMid) + "\n" +
-		"  prod id: " + std::to_string(s.wPid) + "\n" +
-		"  driver version: " + std::to_string(s.vDriverVersion) + "\n";
+		"  man id: " + std::to_wstring(s.wMid) + "\n" +
+		"  prod id: " + std::to_wstring(s.wPid) + "\n" +
+		"  driver version: " + std::to_wstring(s.vDriverVersion) + "\n";
 }
 
 template<typename out_dev_caps_struct>
-std::string stringify_output_caps(out_dev_caps_struct const& s) {
+std::wstring stringify_output_caps(out_dev_caps_struct const& s) {
 	return stringify_common_caps(s) +
-	       "  technology: " + std::to_string(s.wTechnology) + "\n" +
-		   "  voices: " + std::to_string(s.wVoices) + "\n" +
-	       "  notes: " + std::to_string(s.wNotes) + "\n" +
-	       "  channel mask: " + std::to_string(s.wChannelMask) + "\n" +
-	       "  support: " + std::to_string(s.dwSupport) + "\n";
+	       "  technology: " + std::to_wstring(s.wTechnology) + "\n" +
+		   "  voices: " + std::to_wstring(s.wVoices) + "\n" +
+	       "  notes: " + std::to_wstring(s.wNotes) + "\n" +
+	       "  channel mask: " + std::to_wstring(s.wChannelMask) + "\n" +
+	       "  support: " + std::to_wstring(s.dwSupport) + "\n";
 }
 
 template<typename in_dev_caps_struct>
-std::string stringify_input_caps(in_dev_caps_struct const& s) {
+std::wstring stringify_input_caps(in_dev_caps_struct const& s) {
 	return stringify_common_caps(s);
 }
 
 template<typename dev_caps_struct>
-std::string stringify_caps(dev_caps_struct const& s) {
+std::wstring stringify_caps(dev_caps_struct const& s) {
 	constexpr bool is_out = CapsDirection<dev_caps_struct>() == Direction::Output;
 	if constexpr (is_out) {
 		return stringify_output_caps(s);
