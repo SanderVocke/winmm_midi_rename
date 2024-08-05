@@ -283,7 +283,7 @@ bool load_config(
 		json data = json::parse(config_content);
 		log << L"Parsed config: " << stringToWstring(data.dump()) << L"\n";
 
-		if (data.contains("log")) { out_log_filename = data["log"].template get <std::wstring>(); log << L"LOG " << stringToWstring(out_log_filename.value_or("no")) << std::endl; }
+		if (data.contains("log")) { out_log_filename = data["log"].template get <std::string>(); log << "LOG " << out_log_filename.value_or("no") << std::endl; }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
 		if (data.contains("popup_verbose")) { out_debug_popup_verbose = data["popup_verbose"].template get <bool>(); }
 		if (data.contains("rules")) {
