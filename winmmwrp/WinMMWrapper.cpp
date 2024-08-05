@@ -275,7 +275,7 @@ bool load_config(
 	bool &out_debug_popup_verbose,
 	std::wostream &log) {
 	try {
-		log << L"Loading config from " << filename << L"\n";
+		log << L"Loading config from " << stringToWstring(filename) << L"\n";
 
 		std::string abspath;
 		auto config_content = read_whole_file(filename, &abspath);
@@ -283,7 +283,7 @@ bool load_config(
 		json data = json::parse(config_content);
 		log << L"Parsed config: " << stringToWstring(data.dump()) << L"\n";
 
-		if (data.contains("log")) { out_log_filename = data["log"].template get <std::wstring>(); log << L"LOG " << out_log_filename.value_or("no") << std::endl; }
+		if (data.contains("log")) { out_log_filename = data["log"].template get <std::wstring>(); log << L"LOG " << stringToWstring(out_log_filename.value_or("no")) << std::endl; }
 		if (data.contains("popup")) { out_debug_popup = data["popup"].template get<bool>(); }
 		if (data.contains("popup_verbose")) { out_debug_popup_verbose = data["popup_verbose"].template get <bool>(); }
 		if (data.contains("rules")) {
@@ -297,10 +297,10 @@ bool load_config(
 					if (rule.contains("match_driver_version")) { rval.maybe_match_driver_version = rule["match_driver_version"].template get<size_t>(); }
 					if (rule.contains("match_direction")) {
 						auto text = rule["match_direction"].template get<std::wstring>();
-						if (text == "in") { rval.maybe_match_direction = Direction::Input; }
-						else if (text == "out") { rval.maybe_match_direction = Direction::Output; }
+						if (text == L"in") { rval.maybe_match_direction = Direction::Input; }
+						else if (text == L"out") { rval.maybe_match_direction = Direction::Output; }
 						else {
-							throw std::runtime_error("Invalid value for match_direction (should be in or out): " + text);
+							throw std::runtime_error("Invalid value for match_direction (should be in or out): " + wstringToString(text));
 						}
 					}
 					if (rule.contains("replace_name")) { rval.maybe_replace_name = rule["replace_name"].template get<std::wstring>(); }
@@ -373,7 +373,7 @@ std::wstring last_error_string()
 
 void configure() {
 	char* maybe_env;
-	std::string try_config_file = L"midi_rename_config.json";
+	std::string try_config_file = "midi_rename_config.json";
 	bool success = true;
 	bool debug_popup = true;
 	bool debug_popup_verbose = false;
@@ -394,7 +394,7 @@ void configure() {
 		if ((maybe_env = getenv("MIDI_REPLACE_LOGFILE")) != NULL) {
 			std::string value {maybe_env};
 			wrapper_log(&pre_popup_log, L"Log file from config overridden by MIDI_REPLACE_LOGFILE env var:\n  before: %s\n  after: %s\n",
-			            maybe_logfilename.value_or(std::wstring("none")).c_str(), value);
+			            maybe_logfilename.value_or(std::wstring(L"none")).c_str(), value);
 			maybe_logfilename = value;
 		}
 
@@ -444,11 +444,11 @@ void configure() {
 		else {
 			msg += L"Config not found!\n";
 		}
-		msg += L"# of rules loaded: " + std::to_string(g_replace_rules.size()) + L"\n";
+		msg += L"# of rules loaded: " + std::to_wstring(g_replace_rules.size()) + L"\n";
 
 		if (debug_popup_verbose) {
 			msg += L"Detailed log (desable by setting \"popup_verbose\" to false in the config):\n";
-			msg += stringToWstring(pre_popup_log.str());
+			msg += pre_popup_log.str();
 		} else {
 			msg += L"To include detailed log info up to this point into the popup, set \"popup_verbose\" to true in the config.\n";
 		}
