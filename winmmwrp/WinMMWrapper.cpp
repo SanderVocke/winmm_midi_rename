@@ -407,7 +407,7 @@ void configure() {
 			}
 
 			// Write our log msgs from loading the config
-			wrapper_log(&pre_popup_log, "%s", config_log.str().c_str());
+			wrapper_log(&pre_popup_log, L"%s", config_log.str().c_str());
 		}
 
 		wrapper_log(&pre_popup_log, L"Starting MIDI replace with %d replace rules.\n", g_replace_rules.size());
