@@ -60,6 +60,39 @@ Walkthrough of the config:
 
 So the example above will, among other things, modify the "Joue - Joue Play" device as named by ALSA to "Joue" as the Joue Play app expects.
 
+# Configuration with interface name spoofing
+
+In addition to renaming MIDI devices, this wrapper also supports spoofing the device interface name. This is a driver-level feature and is typically not needed for simple applications but can be useful in certain scenarios, particularly when dealing with applications that use more advanced MIDI API calls.
+
+Note:
+- This feature is usually not needed for simple applications. Applications using this API may be attempting to detect if they're running under Wine in Linux, in which case this feature may help trick the application by providing a Windows-like interface name.
+- For applications using additional advanced driver-level MIDI calls, this spoofing might not be sufficient, as other driver-level calls are not spoofed.
+- Setting up interface name spoofing will ensure that such calls return MMSYSERR_NOERROR to the app, even if the underlying system (e.g., Wine) returns an error. This can be beneficial or detrimental, depending on your specific requirements.
+
+To configure interface name spoofing, you can add the `replace_interface_name` property to your rule in the configuration file. Here's an example:
+
+```json
+{
+  "log": "midi_rename.log",
+  "popup": true,
+  "popup_verbose": false,
+  "rules": [
+    {
+      "match_name": "My MIDI Device",
+      "replace_name": "Spoofed Device Name",
+      "replace_man_id": 65535,
+      "replace_prod_id": 65535,
+      "replace_driver_version": 0,
+      "replace_interface_name": "\\\\?\\SWD#MMDEVAPI#MIDII.P_0001#{504be32c-ccf6-4d2c-b73f-6f8b3747e22b}"
+    }
+  ]
+}
+```
+In this example, the replace_interface_name property is set to a Windows-style device interface path. This will be returned when an application queries the device interface, potentially allowing it to work with applications that expect specific device interface names.
+
+Remember to use this feature with care, as it may have unintended consequences depending on how the target application interacts with MIDI devices. If you want to analyze exactly what is going on, [API Monitor](http://www.rohitab.com/apimonitor) is your friend (both with and without the wrapper installed, and both in Wine and on Windows).
+
+
 # Environment variables
 
 Apart from the config, the following env vars are supported:
