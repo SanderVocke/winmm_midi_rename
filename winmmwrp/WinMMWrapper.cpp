@@ -572,7 +572,7 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
 		int new_sz = sizeof(wchar_t) * (maybe_substitute.value().size() + 1);
-		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MSYSERR_NOERROR with size %d of: %ls\n", new_sz, maybe_substitute.value().c_str());
+		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MMSYSERR_NOERROR with size %d of: %ls\n", new_sz, maybe_substitute.value().c_str());
 		auto *ptr = reinterpret_cast<ULONG*>(dw1);
 		out_size = new_sz;
 		rval = MMSYSERR_NOERROR;
@@ -597,10 +597,10 @@ MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, HM hm, DWORD_PTR dw
 	std::optional<std::wstring> maybe_substitute = get_maybe_interface_name_override(devDirection, (UINT_PTR)hm);
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
-		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MSYSERR_NOERROR with: %ls\n", maybe_substitute.value().c_str());
+		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MMSYSERR_NOERROR with: %ls\n", maybe_substitute.value().c_str());
 		wcsncpy(reinterpret_cast<wchar_t*>(dw1), maybe_substitute.value().c_str(), dw2 / sizeof(wchar_t));
 		reinterpret_cast<wchar_t*>(dw1)[dw2 / sizeof(wchar_t) - 1] = L'\0';
-		rval = MSYSERR_NOERROR;
+		rval = MMSYSERR_NOERROR;
 	}
 	return rval;
 }
