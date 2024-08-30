@@ -563,15 +563,19 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	rval = devDirection == Direction::Input ?
 		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), 0) :
 		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), 0);
-	wrapper_log(nullptr, L"Queried device interface size for %s. Native result: %d\n",
-	                     (devDirection == Direction::Input ? "input" : "output"), sz);
+	wrapper_log(nullptr, L"Queried device interface size for %s. Return code: %u (is error: %u). Native reported size: %d\n",
+	                     (devDirection == Direction::Input ? "input" : "output"),
+						  (unsigned) rval,
+						  (rval == MMSYSERR_NOERROR ? 0 : 1),
+						  sz);
 	std::optional<std::wstring> maybe_substitute = get_maybe_interface_name_override(devDirection, (UINT_PTR)hm);
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
 		int new_sz = sizeof(wchar_t) * (maybe_substitute.value().size() + 1);
-		wrapper_log(nullptr, L"--> Matched a replace rule. Returning size %d of: %ls\n", new_sz, maybe_substitute.value().c_str());
+		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MSYSERR_NOERROR with size %d of: %ls\n", new_sz, maybe_substitute.value().c_str());
 		auto *ptr = reinterpret_cast<ULONG*>(dw1);
 		out_size = new_sz;
+		rval = MMSYSERR_NOERROR;
 	} else {
 		auto *ptr = reinterpret_cast<ULONG*>(dw1);
 		out_size = sz;
@@ -585,14 +589,18 @@ MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, HM hm, DWORD_PTR dw
 	rval = devDirection == Direction::Input ?
 		MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2) :
 		MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2);
-	wrapper_log(nullptr, L"Queried device interface name for %s. Native result: %ls\n",
-	                     (devDirection == Direction::Input ? "input" : "output"), reinterpret_cast<wchar_t*>(dw1));
+	wrapper_log(nullptr, L"Queried device interface name for %s. Return code: %u (is error: %u). Native result: %ls\n",
+	                      (unsigned) rval,
+						  (rval == MMSYSERR_NOERROR ? 0 : 1),
+	                     (devDirection == Direction::Input ? "input" : "output"),
+						  reinterpret_cast<wchar_t*>(dw1));
 	std::optional<std::wstring> maybe_substitute = get_maybe_interface_name_override(devDirection, (UINT_PTR)hm);
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
-		wrapper_log(nullptr, L"--> Matched a replace rule. Returning: %ls\n", maybe_substitute.value().c_str());
+		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MSYSERR_NOERROR with: %ls\n", maybe_substitute.value().c_str());
 		wcsncpy(reinterpret_cast<wchar_t*>(dw1), maybe_substitute.value().c_str(), dw2 / sizeof(wchar_t));
 		reinterpret_cast<wchar_t*>(dw1)[dw2 / sizeof(wchar_t) - 1] = L'\0';
+		rval = MSYSERR_NOERROR;
 	}
 	return rval;
 }
