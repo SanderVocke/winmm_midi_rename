@@ -114,3 +114,6 @@ If your goal is to get your MIDI device recognized by some software in WINE as i
 
 # License
 See [LICENSE](LICENSE).
+
+# Support My Work
+If you were helped by this repo, please consider [buying me a coffee](https://www.buymeacoffee.com/sandervocke).
