@@ -115,5 +115,9 @@ If your goal is to get your MIDI device recognized by some software in WINE as i
 # License
 See [LICENSE](LICENSE).
 
+# Troubleshooting
+
+If you don't get the popup at all even though winmm.dll is in the PATH (or in the same folder), it might be that your app is loading 32-bit winmm.dll. The wrapper provided here is 64-bit. There is no current solution, but I would happily accept a pull request that adds a working 32-bit configuration to this repo.
+
 # Support My Work
 If you were helped by this repo, please consider [buying me a coffee](https://www.buymeacoffee.com/sandervocke).
