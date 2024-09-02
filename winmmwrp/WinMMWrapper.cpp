@@ -13,6 +13,7 @@
 #include <mmddk.h>
 #include <cwchar>
 #include <wchar.h>
+#include <algorithm>
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -93,6 +94,23 @@ midi_dev_caps to_our_dev_caps(dev_caps_struct v) {
 	}
 
 	return rval;
+}
+
+FILE* g_maybe_wrapper_log_file = NULL;
+
+template<typename ...Args>
+inline void wrapper_log(std::wostringstream* maybe_os, Args... args) {
+	std::vector<wchar_t> logbuf(1024);
+
+	if (g_maybe_wrapper_log_file) {
+		fwprintf(g_maybe_wrapper_log_file, args...);
+	}
+	if (maybe_os) {
+		auto n_needed = swprintf(logbuf.data(), 0, args...);
+		if (n_needed >= logbuf.size()) { logbuf.resize(n_needed + 1); }
+		swprintf(logbuf.data(), logbuf.size(), args...);
+		(*maybe_os) << logbuf.data();
+	}
 }
 
 struct replace_rule {
@@ -179,22 +197,6 @@ static_assert(std::is_same<WCHAR, dev_caps_char_type<MIDIOUTCAPSW>>::value, "err
 static_assert(std::is_same<CHAR, dev_caps_char_type<MIDIOUTCAPSA>>::value, "error");
 
 std::vector<replace_rule> g_replace_rules;
-FILE* g_maybe_wrapper_log_file = NULL;
-
-template<typename ...Args>
-inline void wrapper_log(std::wostringstream* maybe_os, Args... args) {
-	std::vector<wchar_t> logbuf(1024);
-
-	if (g_maybe_wrapper_log_file) {
-		fwprintf(g_maybe_wrapper_log_file, args...);
-	}
-	if (maybe_os) {
-		auto n_needed = swprintf(logbuf.data(), 0, args...);
-		if (n_needed >= logbuf.size()) { logbuf.resize(n_needed+1); }
-		swprintf(logbuf.data(), logbuf.size(), args...);
-		(*maybe_os) << logbuf.data();
-	}
-}
 
 template<typename dev_caps_struct>
 std::wstring stringify_common_caps(dev_caps_struct const& s) {
@@ -253,13 +255,17 @@ std::string read_whole_file(std::string filename, std::string* maybe_abs_path_ou
 	}
 	fseek(f, 0, SEEK_END);
 	long fsize = ftell(f);
+	if (fsize < 0) {
+		fclose(f);
+		throw std::runtime_error("Unable to determine config file size.");
+	}
 	fseek(f, 0, SEEK_SET);  /* same as rewind(f); */
 
 	char* string = (char*)malloc(fsize + 1);
 	if (!string) {
 		throw std::runtime_error("Unable to alloc");
 	}
-	fread(string, fsize, 1, f);
+	fread(string, max(0, fsize), 1, f);
 	fclose(f);
 
 	string[fsize] = 0;
@@ -322,7 +328,8 @@ bool load_config(
 						!rval.maybe_replace_voices.has_value() &&
 						!rval.maybe_replace_notes.has_value() &&
 						!rval.maybe_replace_channel_mask.has_value() &&
-						!rval.maybe_replace_support.has_value()) {
+						!rval.maybe_replace_support.has_value() &&
+						!rval.maybe_replace_interface_name.has_value()) {
 						throw std::runtime_error("No replace items set for rule, would not affect anything.");
 					}
 
@@ -486,7 +493,7 @@ BOOL DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID fImpLoad) {
 
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsA(deviceId, pmoc, cpmoc);
-	wrapper_log(nullptr, L"\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, L"\nRequest for output device capabilities:\n  %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
 			wrapper_log(nullptr, L"--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
@@ -497,7 +504,7 @@ MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsA(UINT_PTR deviceId, LPMIDIOUTCAPSA pm
 
 MMRESULT WINAPI OVERRIDE_midiOutGetDevCapsW(UINT_PTR deviceId, LPMIDIOUTCAPSW pmoc, UINT cpmoc) {
 	MMRESULT rval = MMmidiOutGetDevCapsW(deviceId, pmoc, cpmoc);
-	wrapper_log(nullptr, L"\nRequest for output device capabilities: %s\n", stringify_caps(*pmoc).c_str());
+	wrapper_log(nullptr, L"\nRequest for output device capabilities:\n  %s\n", stringify_caps(*pmoc).c_str());
 	for (auto const& rule : g_replace_rules) {
 		if (rule.apply_in_place_c(*pmoc)) {
 			wrapper_log(nullptr, L"--> Matched a replace rule. Returning: %s\n", stringify_caps(*pmoc).c_str());
@@ -531,10 +538,10 @@ MMRESULT WINAPI OVERRIDE_midiInGetDevCapsW(UINT_PTR deviceId, LPMIDIINCAPSW pmoc
 std::optional<std::wstring> get_maybe_interface_name_override(Direction devDirection, UINT_PTR deviceId) {
 	std::optional<std::wstring> rval;
 	if (devDirection == Direction::Input) {
-		MIDIINCAPSA pmoc;
-		MMmidiInGetDevCapsA(deviceId, &pmoc, 0);
-		wrapper_log(nullptr, L"--> Transparently queried the device interface with result: %s", pmoc.szPname);
+		MIDIINCAPSW pmoc;
+		MMmidiInGetDevCapsW(deviceId, &pmoc, sizeof(pmoc));
 		auto ours = to_our_dev_caps(pmoc);
+		wrapper_log(nullptr, L"--> Transparently queried the device #%u properties for interface query. Found device:\n%ls", (unsigned)deviceId, stringify_caps(pmoc).c_str());
 		for (auto &rule : g_replace_rules) {
 			if (rule.is_match(ours)) {
 				rval = rule.maybe_replace_interface_name;
@@ -542,10 +549,10 @@ std::optional<std::wstring> get_maybe_interface_name_override(Direction devDirec
 			}
 		}
 	} else {
-		MIDIOUTCAPSA pmoc;
-		MMmidiOutGetDevCapsA(deviceId, &pmoc, 0);
-		wrapper_log(nullptr, L"--> Transparently queried the device interface with result: %s", pmoc.szPname);
+		MIDIOUTCAPSW pmoc;
+		MMmidiOutGetDevCapsW(deviceId, &pmoc, sizeof(pmoc));
 		auto ours = to_our_dev_caps(pmoc);
+		wrapper_log(nullptr, L"--> Transparently queried the device #%u properties for interface query. Found device:\n%ls", (unsigned)deviceId, stringify_caps(pmoc).c_str());
 		for (auto &rule : g_replace_rules) {
 			if (rule.is_match(ours)) {
 				rval = rule.maybe_replace_interface_name;
@@ -563,8 +570,8 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	rval = devDirection == Direction::Input ?
 		   MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), 0) :
 		   MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACESIZE, reinterpret_cast<DWORD_PTR>(&sz), 0);
-	wrapper_log(nullptr, L"Queried device interface size for %s. Return code: %u (is error: %u). Native reported size: %d\n",
-	                     (devDirection == Direction::Input ? "input" : "output"),
+	wrapper_log(nullptr, L"Handle query for device interface size for %s. Return code: %u (is error: %u). Native reported size: %d\n",
+	                      (devDirection == Direction::Input ? L"input" : L"output"),
 						  (unsigned) rval,
 						  (rval == MMSYSERR_NOERROR ? 0 : 1),
 						  sz);
@@ -572,11 +579,12 @@ MMRESULT handle_QUERYDEVICEINTERFACESIZE(Direction devDirection, HM hm, DWORD_PT
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
 		int new_sz = sizeof(wchar_t) * (maybe_substitute.value().size() + 1);
-		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MMSYSERR_NOERROR with size %d of: %ls\n", new_sz, maybe_substitute.value().c_str());
+		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MMSYSERR_NOERROR with size %d of: %ls\n\n", new_sz, maybe_substitute.value().c_str());
 		auto *ptr = reinterpret_cast<ULONG*>(dw1);
 		out_size = new_sz;
 		rval = MMSYSERR_NOERROR;
 	} else {
+		wrapper_log(nullptr, L"--> No match, returning native result.\n\n");
 		auto *ptr = reinterpret_cast<ULONG*>(dw1);
 		out_size = sz;
 	}
@@ -589,18 +597,21 @@ MMRESULT handle_QUERYDEVICEINTERFACE(Direction devDirection, HM hm, DWORD_PTR dw
 	rval = devDirection == Direction::Input ?
 		MMmidiInMessage((HMIDIIN)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2) :
 		MMmidiOutMessage((HMIDIOUT)hm, DRV_QUERYDEVICEINTERFACE, dw1, dw2);
-	wrapper_log(nullptr, L"Queried device interface name for %s. Return code: %u (is error: %u). Native result: %ls\n",
+	wrapper_log(nullptr, L"Handle query for device interface name for %s. Return code: %u (is error: %u). Native result: %ls\n",
+		                  (devDirection == Direction::Input ? L"input" : L"output"),
 	                      (unsigned) rval,
 						  (rval == MMSYSERR_NOERROR ? 0 : 1),
-	                     (devDirection == Direction::Input ? "input" : "output"),
 						  reinterpret_cast<wchar_t*>(dw1));
 	std::optional<std::wstring> maybe_substitute = get_maybe_interface_name_override(devDirection, (UINT_PTR)hm);
 	auto &out_size = *reinterpret_cast<ULONG*>(dw1);
 	if (maybe_substitute.has_value()) {
-		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MMSYSERR_NOERROR with: %ls\n", maybe_substitute.value().c_str());
+		wrapper_log(nullptr, L"--> Matched a replace rule. Returning MMSYSERR_NOERROR with: %ls\n\n", maybe_substitute.value().c_str());
 		wcsncpy(reinterpret_cast<wchar_t*>(dw1), maybe_substitute.value().c_str(), dw2 / sizeof(wchar_t));
 		reinterpret_cast<wchar_t*>(dw1)[dw2 / sizeof(wchar_t) - 1] = L'\0';
 		rval = MMSYSERR_NOERROR;
+	}
+	else {
+		wrapper_log(nullptr, L"--> No match, returning native result.\n\n");
 	}
 	return rval;
 }
